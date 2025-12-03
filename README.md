@@ -1,6 +1,6 @@
 # 实时股票 MCP 服务
 
-这是一个实时股票数据服务的MCP（Model Context Protocol）服务器。它通过stockapi.com.cn获取金融数据，并将这些数据以工具的形式暴露给支持MCP的AI模型。
+这是一个实时股票数据服务的MCP（Model Context Protocol）服务器。它通过东方财富网获取金融数据，并将这些数据以工具的形式暴露给支持MCP的AI模型。
 
 ## 功能特性
 
@@ -94,7 +94,7 @@ my_stock_mcp_server/
 ├── .env                       # 环境变量配置（需自行创建）
 └── src/
     ├── data_source_interface.py    # 数据源接口定义
-    ├── stock_data_source.py     # stockapi.com.cn数据源实现
+    ├── stock_data_source.py     # 东方财富网数据源实现
     ├── utils.py                    # 通用工具函数
     ├── formatting/
     │   └── markdown_formatter.py   # Markdown格式化工具（废弃）
