@@ -163,8 +163,7 @@ active_data_source: FinancialDataInterface = AnotherDataSource()
 
 ⚠️ **重要提醒**：
 1. 本服务提供的数据仅供参考，不构成投资建议
-2. 数据存在延迟，请以实际交易所数据为准
-3. 请遵守数据使用协议和相关法律法规
+2. 请遵守数据使用协议和相关法律法规
 
 ## 许可证
 
