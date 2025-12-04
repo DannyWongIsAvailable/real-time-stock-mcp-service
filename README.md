@@ -93,17 +93,18 @@ real-time-stock-mcp-service/
 ├── README.md                  # 项目说明文档
 ├── .env                       # 环境变量配置（需自行创建）
 └── src/
-    ├── data_source_interface.py    # 数据源接口定义
-    ├── stock_data_source.py     # 东方财富网数据源实现
-    ├── utils/
-         │   ├── utils.py    # 工具模块通用工具
-         │   └── markdown_formatter.py   # Markdown格式化工具
-         │
-         └─→ mcp_tools/                     ← 各个MCP工具模块
-              ├─ search.py
-              ├─ kline_data.py
-              └─ ...
-
+    ├── crawler/               # 网络爬虫模块
+    │   ├── base_crawler.py       # 爬虫基类
+    │   ├── basic_data.py         # 基础数据爬虫
+    │   └── technical_data.py     # 技术数据爬虫
+    ├── data_source_interface.py  # 数据源接口定义
+    ├── stock_data_source.py      # 东方财富网数据源实现
+    ├── mcp_tools/                # 各个MCP工具模块
+    │   ├── kline_data.py         # K线数据工具
+    │   └── search.py             # 股票搜索工具
+    └── utils/                    # 工具模块
+        ├── markdown_formatter.py # Markdown格式化工具
+        └── utils.py              # 通用工具
 ```
 
 ## 核心设计
@@ -126,7 +127,7 @@ real-time-stock-mcp-service/
 
 ### 添加新工具
 
-1. 在 `src/tools/` 目录创建新的工具模块
+1. 在 `src/mcp_tools/` 目录创建新的工具模块
 2. 实现工具函数并定义注册函数
 3. 在 `mcp_server.py` 中导入并注册
 
