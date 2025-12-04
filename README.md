@@ -31,8 +31,8 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ### 2. 克隆或下载项目
 
 ```bash
-git clone <repository-url>
-cd stock_mcp_server
+git clone https://github.com/DannyWongIsAvailable/real-time-stock-mcp-service.git
+cd real-time-stock-mcp-service
 ```
 
 ### 3. 使用 uv 安装依赖
@@ -73,7 +73,7 @@ uv run mcp_server.py
       "command": "uv",
       "args": [
         "--directory",
-        "C:\\path\\to\\my_stock_mcp_server",
+        "C:\\path\\to\\real-time-stock-mcp-service",
         "run",
         "mcp_server.py"
       ]
@@ -87,7 +87,7 @@ uv run mcp_server.py
 ## 项目结构
 
 ```
-my_stock_mcp_server/
+real-time-stock-mcp-service/
 ├── mcp_server.py              # MCP服务器主文件
 ├── pyproject.toml             # 项目配置文件
 ├── README.md                  # 项目说明文档
@@ -158,9 +158,8 @@ active_data_source: StockDataSource = AnotherDataSource()
 
 ⚠️ **重要提醒**：
 1. 本服务提供的数据仅供参考，不构成投资建议
-2. 最新交易日不一定是今天，需要使用 `get_latest_trading_date()` 工具获取
-3. 数据存在延迟，请以实际交易所数据为准
-4. 请遵守数据使用协议和相关法律法规
+2. 数据存在延迟，请以实际交易所数据为准
+3. 请遵守数据使用协议和相关法律法规
 
 ## 许可证
 

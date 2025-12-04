@@ -68,7 +68,7 @@ uv run mcp_server.py
       "command": "uv",
       "args": [
         "--directory",
-        "F:/Project/PyCharm/all-MCP-servers/real-time-stock-mcp-service",
+        "F:/path/to/your/project/real-time-stock-mcp-service",
         "run",
         "mcp_server.py"
       ]
@@ -98,9 +98,9 @@ uv run mcp_server.py
   }
 }
 
+```
 
-
-## 8. 查看日志
+## 6. 查看日志
 
 如需查看详细日志，可以修改 `mcp_server.py` 中的日志级别:
 
@@ -108,7 +108,7 @@ uv run mcp_server.py
 setup_logging(level=logging.DEBUG)  # 改为 DEBUG 级别
 ```
 
-## 9. 下一步
+## 7. 下一步
 
 - 阅读 [README.md](README.md) 了解所有可用工具
 - 查看项目结构了解如何添加新功能
