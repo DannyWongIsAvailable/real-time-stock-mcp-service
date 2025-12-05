@@ -84,12 +84,11 @@ real-time-stock-mcp-service/
 ├── mcp_server.py              # MCP服务器主文件
 ├── pyproject.toml             # 项目配置文件
 ├── README.md                  # 项目说明文档
-├── .env                       # 环境变量配置（需自行创建）
 └── src/
     ├── crawler/               # 网络爬虫模块
     │   ├── base_crawler.py       # 爬虫基类
     │   ├── basic_data.py         # 基础数据爬虫（股票搜索、交易日信息）
-    │   ├── real_time_data.py     # 实时数据爬虫（来自雪球）
+    │   ├── real_time_data.py     # 实时数据爬虫
     │   ├── technical_data.py     # 技术数据爬虫（K线数据）
     │   └── ...              
     ├── data_source_interface.py  # 数据源接口定义
