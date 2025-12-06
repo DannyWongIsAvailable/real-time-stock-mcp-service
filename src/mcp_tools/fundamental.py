@@ -22,14 +22,60 @@ def register_fundamental_tools(app: FastMCP, data_source: FinancialDataInterface
     """
 
     @app.tool()
+    def get_report_dates(stock_code: str) -> str:
+        """
+        获取最近的报告日期
+
+        获取指定股票公司的最近报告日期。
+
+        Args:
+            stock_code: 股票代码，包含交易所代码，格式如300059.SZ
+
+        Returns:
+            最近报告日期
+
+        Examples:
+            - get_report_dates("300059.SZ")
+        """
+        try:
+            logger.info(f"获取报告日期: {stock_code}")
+
+            # 从数据源获取原始数据
+            raw_data = data_source.get_report_dates(stock_code)
+
+            if not raw_data:
+                return "N/A"
+
+            # 检查是否有错误信息
+            if isinstance(raw_data, list) and len(raw_data) > 0 and "error" in raw_data[0]:
+                error_msg = raw_data[0]["error"]
+                return error_msg
+
+            # 只处理第一个数据（最近的报告日期）
+            if isinstance(raw_data, list) and len(raw_data) > 0:
+                latest_report = raw_data[0]
+                report_date = latest_report.get('REPORT_DATE', 'N/A')
+                # 只取日期部分，去除时间部分
+                if report_date != 'N/A' and ' ' in report_date:
+                    report_date = report_date.split(' ')[0]
+                
+                return report_date
+            else:
+                return "N/A"
+
+        except Exception as e:
+            logger.error(f"获取报告日期时出错: {e}")
+            return "N/A"
+
+    @app.tool()
     def get_main_business(
         stock_code: str,
         report_date: Optional[str] = None
     ) -> str:
         """
-        获取主营业务构成
+        获取主营构成分析
 
-        获取指定股票的主营业务构成数据。
+        获取指定股票的主营构成分析数据。
 
         Args:
             stock_code: 股票代码，包含交易所代码，如300059.SZ
@@ -41,6 +87,10 @@ def register_fundamental_tools(app: FastMCP, data_source: FinancialDataInterface
         Examples:
             - get_main_business("300059.SZ")
             - get_main_business("000021.SZ", "2025-06-30")
+
+        PS:
+            如果不传入日期，则得到所有的数据，数据太多不利于分析，
+            请用get_report_dates() 用最近的日期作为参数再获取主营业务分析
         """
         try:
             logger.info(f"获取主营业务构成: {stock_code}, 报告期: {report_date}")

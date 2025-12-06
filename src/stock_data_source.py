@@ -286,14 +286,14 @@ class WebCrawlerDataSource(FinancialDataInterface):
 
     def get_main_business(self, stock_code: str, report_date: Optional[str] = None) -> Optional[List[Dict[Any, Any]]]:
         """
-        获取主营业务构成
+        获取主营构成分析
 
         Args:
             stock_code: 股票代码，包含交易所代码，如300059.SZ
             report_date: 报告日期，格式为YYYY-MM-DD，可选参数
 
         Returns:
-            主营业务构成数据列表，每个元素是一个字典，包含主营业务信息
+            主营构成分析数据列表，每个元素是一个字典，包含主营业务信息
             如果没有找到数据或出错，返回包含错误信息的列表
 
         Raises:
@@ -305,17 +305,52 @@ class WebCrawlerDataSource(FinancialDataInterface):
             raise DataSourceError("基本面数据爬虫未初始化，请先调用initialize()方法")
 
         try:
-            # 调用爬虫获取主营业务数据
+            # 调用爬虫获取主营构成分析数据
             main_business_data = self.fundamental_crawler.get_main_business(stock_code, report_date)
 
             # 如果没有数据，返回空列表
             if main_business_data is None:
-                logger.info(f"未获取到股票 {stock_code} 的主营业务数据")
+                logger.info(f"未获取到股票 {stock_code} 的主营构成分析数据")
                 return []
 
-            logger.info(f"成功获取股票 {stock_code} 的主营业务数据")
+            logger.info(f"成功获取股票 {stock_code} 的主营构成分析数据")
             return main_business_data
 
         except Exception as e:
-            logger.error(f"获取主营业务数据失败: {e}")
-            raise DataSourceError(f"获取主营业务数据失败: {e}")
+            logger.error(f"获取主营构成分析数据失败: {e}")
+            raise DataSourceError(f"获取主营构成分析数据失败: {e}")
+
+    def get_report_dates(self, stock_code: str) -> Optional[List[Dict[Any, Any]]]:
+        """
+        获取报告日期
+
+        Args:
+            stock_code: 股票代码，包含交易所代码，如300059.SZ
+
+        Returns:
+            报告日期数据列表，每个元素是一个字典，包含报告日期信息
+            如果没有找到数据或出错，返回包含错误信息的列表
+
+        Raises:
+            DataSourceError: 当数据源出现错误时
+        """
+        # 检查fundamental_crawler是否已初始化
+        if self.fundamental_crawler is None:
+            logger.error("基本面数据爬虫未初始化")
+            raise DataSourceError("基本面数据爬虫未初始化，请先调用initialize()方法")
+
+        try:
+            # 调用爬虫获取报告日期数据
+            report_dates_data = self.fundamental_crawler.get_report_dates(stock_code)
+
+            # 如果没有数据，返回空列表
+            if report_dates_data is None:
+                logger.info(f"未获取到股票 {stock_code} 的报告日期数据")
+                return []
+
+            logger.info(f"成功获取股票 {stock_code} 的报告日期数据")
+            return report_dates_data
+
+        except Exception as e:
+            logger.error(f"获取报告日期数据失败: {e}")
+            raise DataSourceError(f"获取报告日期数据失败: {e}")

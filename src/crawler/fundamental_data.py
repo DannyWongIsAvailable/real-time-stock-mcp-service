@@ -17,6 +17,7 @@ class FundamentalDataCrawler(EastMoneyBaseSpider):
     """
     
     MAIN_BUSINESS_URL = "https://datacenter.eastmoney.com/securities/api/data/v1/get"
+    REPORT_DATE_URL = "https://datacenter.eastmoney.com/securities/api/data/v1/get"
 
     def __init__(
             self,
@@ -30,6 +31,38 @@ class FundamentalDataCrawler(EastMoneyBaseSpider):
         :param timeout: 请求超时时间
         """
         super().__init__(session, timeout)
+
+    def get_report_dates(self, stock_code: str) -> Optional[List[Dict[Any, Any]]]:
+        """
+        获取报告日期
+        
+        :param stock_code: 股票代码，包含交易所代码，格式如688041.SH
+        :return: 报告日期列表
+        """
+        params = {
+            "reportName": "RPT_F10_FN_MAINOP",
+            "columns": "SECUCODE,REPORT_DATE",
+            "distinct": "REPORT_DATE",
+            "filter": f'(SECUCODE="{stock_code}")',
+            "pageNumber": 1,
+            "pageSize": "",
+            "sortTypes": "-1",
+            "sortColumns": "REPORT_DATE",
+            "source": "HSF10",
+            "client": "PC"
+        }
+        
+        try:
+            response = self._get_json(self.REPORT_DATE_URL, params)
+            # 检查响应是否成功
+            if response.get("code") == 0 and response.get("success") is True and response.get("result"):
+                return response["result"]["data"]
+            else:
+                # 如果不成功，返回错误信息
+                message = response.get("message", "未知错误")
+                return [{"error": message}]
+        except Exception as e:
+            return [{"error": str(e)}]
 
     def get_financial_summary(self, stock_code: str) -> Optional[Dict[Any, Any]]:
         """
@@ -55,7 +88,7 @@ class FundamentalDataCrawler(EastMoneyBaseSpider):
         """
         获取主营业务构成
         
-        :param stock_code: 股票代码，包含交易所代码，如300059.SZ
+        :param stock_code: 股票代码，包含交易所代码，格式如300059.SZ
         :param report_date: 报告日期，格式为YYYY-MM-DD，可选参数
         :return: 主营业务构成数据字典
         """

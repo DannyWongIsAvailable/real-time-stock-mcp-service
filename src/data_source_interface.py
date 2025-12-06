@@ -139,7 +139,7 @@ class FinancialDataInterface(ABC):
         获取股票实时数据
 
         Args:
-            symbol: 股票代码，包含交易所代码，例如 SZ300750
+            symbol: 股票代码，包含交易所代码，格式例如 SZ300750
 
         Returns:
             实时股票数据字典，包含市场状态、报价等信息
@@ -153,7 +153,7 @@ class FinancialDataInterface(ABC):
     @abstractmethod
     def get_main_business(self, stock_code: str, report_date: Optional[str] = None) -> Optional[List[Dict[Any, Any]]]:
         """
-        获取主营业务构成
+        获取主营构成分析
 
         Args:
             stock_code: 股票代码，包含交易所代码，如300059.SZ
@@ -161,6 +161,23 @@ class FinancialDataInterface(ABC):
 
         Returns:
             主营业务构成数据列表，每个元素是一个字典，包含主营业务信息
+            如果没有找到数据或出错，返回包含错误信息的列表或者None
+
+        Raises:
+            DataSourceError: 当数据源出现错误时
+        """
+        pass
+
+    @abstractmethod
+    def get_report_dates(self, stock_code: str) -> Optional[List[Dict[Any, Any]]]:
+        """
+        获取报告日期
+
+        Args:
+            stock_code: 股票代码，包含交易所代码，格式如300059.SZ
+
+        Returns:
+            报告日期数据列表，每个元素是一个字典，包含报告日期信息
             如果没有找到数据或出错，返回包含错误信息的列表或者None
 
         Raises:
