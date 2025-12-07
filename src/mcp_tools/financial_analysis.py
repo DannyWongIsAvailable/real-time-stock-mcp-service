@@ -178,4 +178,82 @@ def register_financial_analysis_tools(app: FastMCP, data_source: FinancialDataIn
             logger.error(f"获取股东户数数据时出错: {e}")
             return f"获取股东户数数据失败: {str(e)}"
 
+    @app.tool()
+    def get_industry_valuation_comparison(stock_code: str) -> str:
+        """
+        获取同行业估值对比数据
+
+        获取指定股票的同行业估值对比数据，包括同行业公司的基本财务和估值指标。
+
+        Args:
+            stock_code: 股票代码，包含交易所代码，如688041.SH
+
+        Returns:
+            行业估值对比数据的Markdown表格
+
+        Examples:
+            - get_industry_valuation_comparison("688041.SH")
+        """
+        try:
+            # 从数据源获取同行业估值对比数据
+            industry_data = data_source.get_industry_valuation_comparison(stock_code)
+
+            if not industry_data:
+                return f"未能获取到股票 {stock_code} 的行业估值对比数据"
+
+            # 检查是否返回错误信息
+            if isinstance(industry_data, list) and len(industry_data) > 0 and "error" in industry_data[0]:
+                return f"获取行业估值对比数据失败: {industry_data[0]['error']}"
+
+            # 格式化数据
+            formatted_data = []
+            for item in industry_data:
+                # 处理数值格式化
+                total_market_cap = item.get('TOTAL_MARKET_CAP')
+                if total_market_cap is not None:
+                    total_market_cap = f"{_format_currency_value(total_market_cap)}元"
+                
+                pb = item.get('PB')
+                if pb is not None:
+                    pb = f"{pb:.2f}"
+                    
+                roe = item.get('ROE')
+                if roe is not None:
+                    roe = f"{roe:.2f}%"
+                
+                total_operate_reve = item.get('TOTALOPERATEREVE')
+                if total_operate_reve is not None:
+                    total_operate_reve = f"{_format_currency_value(total_operate_reve)}元"
+                
+                parent_net_profit = item.get('PARENTNETPROFIT')
+                if parent_net_profit is not None:
+                    parent_net_profit = f"{_format_currency_value(parent_net_profit)}元"
+
+                formatted_item = {
+                    '股票代码': item.get('CORRE_SECURITY_CODE', ''),
+                    '股票名称': item.get('CORRE_SECURITY_NAME', ''),
+                    '行业': item.get('INDUSTRY', ''),
+                    '总市值': total_market_cap,
+                    '总市值排名': item.get('TOTAL_MARKET_CAP_RANK', ''),
+                    '市净率': pb,
+                    '市净率排名': item.get('PB_RANK', ''),
+                    '净资产收益率': roe,
+                    '净资产收益率排名': item.get('ROE_RANK', ''),
+                    '营业收入': total_operate_reve,
+                    '营收排名': item.get('TOTALOPERATEREVE_RANK', ''),
+                    '归母净利润': parent_net_profit,
+                    '是否本股': '是' if item.get('IS_SELF', 0) == 1 else '否',
+                    '报告类型': item.get('REPORT_TYPE', ''),
+                }
+                formatted_data.append(formatted_item)
+
+            # 生成Markdown表格
+            table = format_list_to_markdown_table(formatted_data)
+            note = f"\n\n💡 显示 {len(formatted_data)} 条同行业估值对比数据"
+            return f"## {stock_code} 同行业估值对比数据\n\n{table}{note}"
+
+        except Exception as e:
+            logger.error(f"获取同行业估值对比数据时出错: {e}")
+            return f"获取同行业估值对比数据失败: {str(e)}"
+
     logger.info("财务分析工具已注册")

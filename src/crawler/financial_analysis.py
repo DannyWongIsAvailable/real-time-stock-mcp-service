@@ -13,6 +13,7 @@ class FinancialAnalysisCrawler(EastMoneyBaseSpider):
     
     OPERATING_REVENUE_URL = "https://datacenter.eastmoney.com/securities/api/data/v1/get"
     HOLDER_NUMBER_URL = "https://datacenter.eastmoney.com/securities/api/data/v1/get"
+    INDUSTRY_VALUATION_URL = "https://datacenter.eastmoney.com/securities/api/data/v1/get"
 
     def __init__(
             self,
@@ -86,6 +87,39 @@ class FinancialAnalysisCrawler(EastMoneyBaseSpider):
         
         try:
             response = self._get_json(self.HOLDER_NUMBER_URL, params)
+            # 检查响应是否成功
+            if response.get("code") == 0 and response.get("success") is True and response.get("result"):
+                return response["result"]["data"]
+            else:
+                # 如果不成功，返回错误信息
+                message = response.get("message", "未知错误")
+                return [{"error": message}]
+        except Exception as e:
+            return [{"error": str(e)}]
+
+    def get_industry_valuation_comparison(self, stock_code: str) -> Optional[List[Dict[Any, Any]]]:
+        """
+        获取同行业估值对比数据
+
+        :param stock_code: 股票代码，包含交易所代码，如688041.SH
+        :return: 同行业估值对比数据列表
+        """
+        params = {
+            "reportName": "RPT_F10_INDUSTRY_COMPARED",
+            "columns": "ALL",
+            "quoteColumns": "",
+            "filter": f'(SECUCODE="{stock_code}")',
+            "sortTypes": "-1,1",
+            "sortColumns": "IS_SELF,TOTALOPERATEREVE_RANK",
+            "pageNumber": 1,
+            "pageSize": 50,  # 增加页面大小以获取更多数据
+            "source": "F10",
+            "client": "PC",
+            "v": "0915705654869751"
+        }
+        
+        try:
+            response = self._get_json(self.INDUSTRY_VALUATION_URL, params)
             # 检查响应是否成功
             if response.get("code") == 0 and response.get("success") is True and response.get("result"):
                 return response["result"]["data"]

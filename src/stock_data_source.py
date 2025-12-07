@@ -121,3 +121,6 @@ class WebCrawlerDataSource(FinancialDataInterface):
 
     def get_holder_number(self, stock_code: str) -> Optional[List[Dict[Any, Any]]]:
         return self.financial_analysis_crawler.get_holder_number(stock_code)
+
+    def get_industry_valuation_comparison(self, stock_code: str) -> Optional[List[Dict[Any, Any]]]:
+        return self.financial_analysis_crawler.get_industry_valuation_comparison(stock_code)
