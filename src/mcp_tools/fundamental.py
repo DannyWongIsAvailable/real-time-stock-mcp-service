@@ -67,7 +67,7 @@ def register_fundamental_tools(app: FastMCP, data_source: FinancialDataInterface
         获取指定股票的主营构成分析数据。
 
         Args:
-            stock_code: 股票代码，包含交易所代码，如300059.SZ
+            stock_code: 股票代码，必须在后面加上交易所代码，如300059.SZ
 
         Returns:
             主营业务构成数据的Markdown表格
@@ -153,7 +153,7 @@ def register_fundamental_tools(app: FastMCP, data_source: FinancialDataInterface
         获取指定股票的经营评述信息。
 
         Args:
-            stock_code: 股票代码，包含交易所代码，格式如300059.SZ
+            stock_code: 股票代码，必须在后面加上交易所代码，格式如300059.SZ
 
         Returns:
             经营评述文本

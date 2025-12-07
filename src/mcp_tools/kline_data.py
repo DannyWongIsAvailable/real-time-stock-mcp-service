@@ -241,9 +241,9 @@ def register_kline_tools(app: FastMCP, data_source: FinancialDataInterface):
         frequency: str = "d"
     ) -> str:
         """
-        获取K线数据
+        获取历史K线数据
 
-        获取指定股票在指定日期范围内的K线数据。
+        获取指定股票在指定日期范围内的K线数据。仅支持A股
 
         Args:
             stock_code: 股票代码

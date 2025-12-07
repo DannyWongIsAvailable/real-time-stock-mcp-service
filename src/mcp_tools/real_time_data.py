@@ -29,7 +29,7 @@ def register_real_time_data_tools(app: FastMCP, data_source: FinancialDataInterf
         获取指定股票的实时行情数据，包括价格、涨跌幅、成交量等信息。
 
         Args:
-            symbol: 股票代码，包含交易所代码，格式如 SZ300750  或 SH600519
+            symbol: 股票代码，A股必须在前面加上交易所代码，格式如 SZ300750  或 SH600519，H股只用数字
 
         Returns:
             格式化的实时股票数据，以Markdown表格形式展示
@@ -37,6 +37,7 @@ def register_real_time_data_tools(app: FastMCP, data_source: FinancialDataInterf
         Examples:
             - get_real_time_data("SZ300750")
             - get_real_time_data("SH600519")
+            - get_real_time_data("01810")
         """
         try:
             logger.info(f"获取实时股票数据: {symbol}")
