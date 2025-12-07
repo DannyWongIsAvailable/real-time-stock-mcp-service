@@ -319,3 +319,27 @@ class FinancialDataInterface(ABC):
             DataSourceError: 当数据源出现错误时
         """
         pass
+
+    @abstractmethod
+    def get_holder_number(self, stock_code: str) -> Optional[List[Dict[Any, Any]]]:
+        """
+        获取股东户数数据
+
+        Args:
+            stock_code: 股票代码，包含交易所代码，格式如688041.SH
+
+        Returns:
+            股东户数数据列表，每个元素是一个字典，包含以下字段：
+            - SECURITY_CODE: 股票代码
+            - SECUCODE: 股票完整代码
+            - SECURITY_NAME_ABBR: 股票名称
+            - HOLDER_NUM: 股东户数
+            - REPORT: 报告期
+            - END_DATE: 截止日期
+            - CLOSE_PRICE: 收盘价
+            如果没有找到数据或出错，返回包含错误信息的列表或者None
+
+        Raises:
+            DataSourceError: 当数据源出现错误时
+        """
+        pass

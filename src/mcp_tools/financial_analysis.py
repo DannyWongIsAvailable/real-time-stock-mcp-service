@@ -119,3 +119,63 @@ def register_financial_analysis_tools(app: FastMCP, data_source: FinancialDataIn
         except Exception as e:
             logger.error(f"获取业绩概况数据时出错: {e}")
             return f"获取业绩概况数据失败: {str(e)}"
+
+    @app.tool()
+    def get_holder_number(stock_code: str) -> str:
+        """
+        获取股东户数数据
+
+        获取指定股票的股东户数数据，包括历史各期的股东人数及对应的收盘价。
+
+        Args:
+            stock_code: 股票代码，包含交易所代码，格式如688041.SH
+
+        Returns:
+            股东户数数据的Markdown表格
+
+        Examples:
+            - get_holder_number("688041.SH")
+        """
+        try:
+            logger.info(f"获取股票 {stock_code} 的股东户数数据")
+
+            # 从数据源获取股东户数数据
+            holder_data = data_source.get_holder_number(stock_code)
+
+            if not holder_data:
+                return f"未能获取到股票 {stock_code} 的股东户数数据"
+
+            # 检查是否返回错误信息
+            if isinstance(holder_data, list) and len(holder_data) > 0 and "error" in holder_data[0]:
+                return f"获取股东户数数据失败: {holder_data[0]['error']}"
+
+            # 格式化数据
+            formatted_data = []
+            for item in holder_data:
+                # 处理数值格式化
+                holder_num = item.get('HOLDER_NUM')
+                if holder_num is not None:
+                    holder_num = f"{holder_num:,}户"
+                
+                close_price = item.get('CLOSE_PRICE')
+                if close_price is not None:
+                    close_price = f"{close_price:.2f}元"
+
+                formatted_item = {
+                    '股东户数': holder_num,
+                    '股价': close_price,
+                    '报告期': item.get('REPORT', ''),
+                    '截止日期': item.get('END_DATE', '')[:10] if item.get('END_DATE') else '',
+                }
+                formatted_data.append(formatted_item)
+
+            # 生成Markdown表格
+            table = format_list_to_markdown_table(formatted_data)
+            note = f"\n\n💡 显示 {len(formatted_data)} 条股东户数数据"
+            return f"## {stock_code} 股东户数数据\n\n{table}{note}"
+
+        except Exception as e:
+            logger.error(f"获取股东户数数据时出错: {e}")
+            return f"获取股东户数数据失败: {str(e)}"
+
+    logger.info("财务分析工具已注册")

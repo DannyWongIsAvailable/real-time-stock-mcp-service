@@ -12,6 +12,7 @@ class FinancialAnalysisCrawler(EastMoneyBaseSpider):
     """
     
     OPERATING_REVENUE_URL = "https://datacenter.eastmoney.com/securities/api/data/v1/get"
+    HOLDER_NUMBER_URL = "https://datacenter.eastmoney.com/securities/api/data/v1/get"
 
     def __init__(
             self,
@@ -53,6 +54,38 @@ class FinancialAnalysisCrawler(EastMoneyBaseSpider):
         
         try:
             response = self._get_json(self.OPERATING_REVENUE_URL, params)
+            # 检查响应是否成功
+            if response.get("code") == 0 and response.get("success") is True and response.get("result"):
+                return response["result"]["data"]
+            else:
+                # 如果不成功，返回错误信息
+                message = response.get("message", "未知错误")
+                return [{"error": message}]
+        except Exception as e:
+            return [{"error": str(e)}]
+
+    def get_holder_number(self, stock_code: str) -> Optional[List[Dict[Any, Any]]]:
+        """
+        获取股东户数数据
+
+        :param stock_code: 股票代码，包含交易所代码，格式如688041.SH
+        :return: 股东户数数据列表
+        """
+        params = {
+            "reportName": "RPT_HOLDERNUM_DET",
+            "columns": "SECURITY_CODE,SECUCODE,SECURITY_NAME_ABBR,HOLDER_NUM,REPORT,END_DATE,CLOSE_PRICE",
+            "filter": f'(SECUCODE="{stock_code}")',
+            "sortTypes": "-1",
+            "sortColumns": "END_DATE",
+            "pageNumber": 1,
+            "pageSize": 200,
+            "source": "F10",
+            "client": "PC",
+            "v": "07356204940503169"
+        }
+        
+        try:
+            response = self._get_json(self.HOLDER_NUMBER_URL, params)
             # 检查响应是否成功
             if response.get("code") == 0 and response.get("success") is True and response.get("result"):
                 return response["result"]["data"]
