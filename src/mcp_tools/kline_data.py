@@ -326,7 +326,6 @@ def register_kline_tools(app: FastMCP, data_source: FinancialDataInterface):
         获取技术指标数据
 
         获取指定股票在指定日期范围内的技术指标数据。
-        注: 日期范围会限制计算长期数据，应传入日期范围尽可能长的参数
 
         Args:
             stock_code: 股票代码
@@ -344,8 +343,12 @@ def register_kline_tools(app: FastMCP, data_source: FinancialDataInterface):
         try:
             logger.info(f"获取技术指标: {stock_code}, {start_date} 至 {end_date}, 频率: {frequency}")
 
-            # 从数据源获取原始数据
-            raw_klines = data_source.get_technical_indicators(stock_code, start_date, end_date, frequency)
+            # 自动将开始日期往前推60天以获得更准确的技术指标数据
+            from datetime import datetime, timedelta
+            extended_start_date = (datetime.strptime(start_date, "%Y-%m-%d") - timedelta(days=60)).strftime("%Y-%m-%d")
+
+            # 从数据源获取原始数据（使用扩展后的日期范围）
+            raw_klines = data_source.get_technical_indicators(stock_code, extended_start_date, end_date, frequency)
 
             if not raw_klines:
                 return f"未找到股票代码 '{stock_code}' 在 {start_date} 至 {end_date} 的K线数据"
@@ -353,7 +356,10 @@ def register_kline_tools(app: FastMCP, data_source: FinancialDataInterface):
             # 解析K线数据
             k_data = parse_kline_data(raw_klines)
 
-            # 提取数据用于计算技术指标
+            # 过滤出用户请求的日期范围内的数据用于最终显示
+            filtered_k_data = [item for item in k_data if item['date'] >= start_date]
+
+            # 提取数据用于计算技术指标（使用扩展后的数据）
             closes = [item['close'] for item in k_data]
             highs = [item['high'] for item in k_data]
             lows = [item['low'] for item in k_data]
@@ -368,24 +374,28 @@ def register_kline_tools(app: FastMCP, data_source: FinancialDataInterface):
             rsi_data = calculate_rsi(closes)
             kdj_data = calculate_kdj(highs, lows, closes)
 
-            # 格式化数据
+            # 格式化数据（仅使用过滤后的数据）
             formatted_data = []
-            for i, item in enumerate(k_data):
+            # 计算需要跳过的数据量
+            skip_count = len(k_data) - len(filtered_k_data)
+            
+            for i, item in enumerate(filtered_k_data):
+                idx = i + skip_count  # 使用原始索引以获取正确的技术指标值
                 formatted_data.append({
                     '日期': item['date'],
-                    'MA5': format_number(ma5[i]),
-                    'MA10': format_number(ma10[i]),
-                    'MA20': format_number(ma20[i]),
-                    'MA60': format_number(ma60[i]),
-                    'DIF': format_number(macd_data['DIF'][i]),
-                    'DEA': format_number(macd_data['DEA'][i]),
-                    'MACD柱': format_number(macd_data['MACD'][i]),
-                    'RSI6': format_number(rsi_data['rsi6'][i]),
-                    'RSI12': format_number(rsi_data['rsi12'][i]),
-                    'RSI24': format_number(rsi_data['rsi24'][i]),
-                    'KDJ_K': format_number(kdj_data['k'][i]),
-                    'KDJ_D': format_number(kdj_data['d'][i]),
-                    'KDJ_J': format_number(kdj_data['j'][i])
+                    'MA5': format_number(ma5[idx]),
+                    'MA10': format_number(ma10[idx]),
+                    'MA20': format_number(ma20[idx]),
+                    'MA60': format_number(ma60[idx]),
+                    'DIF': format_number(macd_data['DIF'][idx]),
+                    'DEA': format_number(macd_data['DEA'][idx]),
+                    'MACD柱': format_number(macd_data['MACD'][idx]),
+                    'RSI6': format_number(rsi_data['rsi6'][idx]),
+                    'RSI12': format_number(rsi_data['rsi12'][idx]),
+                    'RSI24': format_number(rsi_data['rsi24'][idx]),
+                    'KDJ_K': format_number(kdj_data['k'][idx]),
+                    'KDJ_D': format_number(kdj_data['d'][idx]),
+                    'KDJ_J': format_number(kdj_data['j'][idx])
                 })
 
             table = format_list_to_markdown_table(formatted_data)

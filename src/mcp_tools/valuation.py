@@ -61,8 +61,8 @@ def register_valuation_tools(app: FastMCP, data_source: FinancialDataInterface):
             # 格式化为表格
             table_data = []
             for item in raw_data:
-                # 处理作者信息
-                authors = ", ".join(item.get("author", [])) if item.get("author") else item.get("researcher", "N/A")
+                # 只处理研究员信息
+                researchers = item.get("researcher", "N/A")
 
                 formatted_item = {
                     "发布日期": item.get("publishDate", "N/A")[:10] if item.get("publishDate") else "N/A",
@@ -71,7 +71,7 @@ def register_valuation_tools(app: FastMCP, data_source: FinancialDataInterface):
                     "机构名称": item.get("orgName", "N/A"),
                     "预期EPS": item.get("predictThisYearEps", "N/A"),
                     "预期PE": item.get("predictThisYearPe", "N/A"),
-                    "研究员": authors[:20] + "..." if len(authors) > 20 else authors,
+                    "研究员": researchers,
 
                 }
                 table_data.append(formatted_item)
