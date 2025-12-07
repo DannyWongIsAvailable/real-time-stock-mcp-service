@@ -25,6 +25,7 @@ class WebCrawlerDataSource(FinancialDataInterface):
         self.real_time_spider = None
         self.fundamental_crawler = None
         self.valuation_crawler = None
+        self.financial_analysis_crawler = None
         logger.info("WebCrawler数据源实例已创建")
     
     def initialize(self) -> bool:
@@ -41,11 +42,13 @@ class WebCrawlerDataSource(FinancialDataInterface):
             from src.crawler.real_time_data import RealTimeDataSpider
             from src.crawler.fundamental_data import FundamentalDataCrawler
             from src.crawler.valuation_data import ValuationDataCrawler
+            from src.crawler.financial_analysis import FinancialAnalysisCrawler
             self.kline_spider = KlineSpider()
             self.searcher = StockSearcher()
             self.real_time_spider = RealTimeDataSpider()
             self.fundamental_crawler = FundamentalDataCrawler()
             self.valuation_crawler = ValuationDataCrawler()
+            self.financial_analysis_crawler = FinancialAnalysisCrawler()
             logger.info("WebCrawler连接成功")
             return True
         except Exception as e:
@@ -62,6 +65,7 @@ class WebCrawlerDataSource(FinancialDataInterface):
         self.real_time_spider = None
         self.fundamental_crawler = None
         self.valuation_crawler = None
+        self.financial_analysis_crawler = None
         logger.info("WebCrawler连接已清理")
 
     # ==================== 行情数据 ====================
@@ -555,3 +559,38 @@ class WebCrawlerDataSource(FinancialDataInterface):
         except Exception as e:
             logger.error(f"获取公司主要财务数据失败: {e}")
             raise DataSourceError(f"获取公司主要财务数据失败: {e}")
+
+    def get_financial_summary(self, stock_code: str) -> Optional[List[Dict[Any, Any]]]:
+        """
+        获取业绩概况数据
+
+        Args:
+            stock_code: 股票代码，包含交易所代码，格式如688041.SH
+
+        Returns:
+            业绩概况数据列表，每个元素是一个字典，包含业绩概况信息
+            如果没有找到数据或出错，返回包含错误信息的列表
+
+        Raises:
+            DataSourceError: 当数据源出现错误时
+        """
+        # 检查financial_analysis_crawler是否已初始化
+        if self.financial_analysis_crawler is None:
+            logger.error("财务分析数据爬虫未初始化")
+            raise DataSourceError("财务分析数据爬虫未初始化，请先调用initialize()方法")
+
+        try:
+            # 调用爬虫获取业绩概况数据
+            financial_summary_data = self.financial_analysis_crawler.get_financial_summary(stock_code)
+
+            # 如果没有数据，返回空列表
+            if financial_summary_data is None:
+                logger.info(f"未获取到股票 {stock_code} 的业绩概况数据")
+                return []
+
+            logger.info(f"成功获取股票 {stock_code} 的业绩概况数据")
+            return financial_summary_data
+
+        except Exception as e:
+            logger.error(f"获取业绩概况数据失败: {e}")
+            raise DataSourceError(f"获取业绩概况数据失败: {e}")

@@ -23,6 +23,7 @@ from src.mcp_tools.kline_data import register_kline_tools as register_crawler_kl
 from src.mcp_tools.real_time_data import register_real_time_data_tools as register_crawler_real_time_tools
 from src.mcp_tools.fundamental import register_fundamental_tools as register_crawler_fundamental_tools
 from src.mcp_tools.valuation import register_valuation_tools as register_crawler_valuation_tools
+from src.mcp_tools.financial_analysis import register_financial_analysis_tools as register_crawler_financial_analysis_tools
 
 
 # --- 日志配置 ---
@@ -64,6 +65,7 @@ register_crawler_real_time_tools(app, active_data_source)
 register_crawler_kline_tools(app, active_data_source)
 register_crawler_fundamental_tools(app, active_data_source)
 register_crawler_valuation_tools(app, active_data_source)
+register_crawler_financial_analysis_tools(app, active_data_source)
 
 logger.info("所有工具模块注册完成")
 
