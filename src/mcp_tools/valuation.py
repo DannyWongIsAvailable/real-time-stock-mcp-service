@@ -28,7 +28,7 @@ def register_valuation_tools(app: FastMCP, data_source: FinancialDataInterface):
         获取指定股票在一定时间范围内的机构评级数据。
 
         Args:
-            stock_code: 股票代码，如688041或688041.SH
+            stock_code: 股票代码，纯数字，如688041
             begin_time: 开始时间，格式如2025-10-23
             end_time: 结束时间，格式如2025-12-07
 
@@ -64,13 +64,32 @@ def register_valuation_tools(app: FastMCP, data_source: FinancialDataInterface):
                 # 只处理研究员信息
                 researchers = item.get("researcher", "N/A")
 
+                # 格式化数值字段，保留两位小数
+                predict_this_year_eps = item.get("predictThisYearEps", "N/A")
+                if predict_this_year_eps != "N/A" and isinstance(predict_this_year_eps, (int, float, str)) and str(predict_this_year_eps).replace('.', '', 1).isdigit():
+                    predict_this_year_eps = f"{float(predict_this_year_eps):.2f}"
+                
+                predict_this_year_pe = item.get("predictThisYearPe", "N/A")
+                if predict_this_year_pe != "N/A" and isinstance(predict_this_year_pe, (int, float, str)) and str(predict_this_year_pe).replace('.', '', 1).isdigit():
+                    predict_this_year_pe = f"{float(predict_this_year_pe):.2f}"
+                
+                predict_next_year_eps = item.get("predictNextYearEps", "N/A")
+                if predict_next_year_eps != "N/A" and isinstance(predict_next_year_eps, (int, float, str)) and str(predict_next_year_eps).replace('.', '', 1).isdigit():
+                    predict_next_year_eps = f"{float(predict_next_year_eps):.2f}"
+                
+                predict_next_year_pe = item.get("predictNextYearPe", "N/A")
+                if predict_next_year_pe != "N/A" and isinstance(predict_next_year_pe, (int, float, str)) and str(predict_next_year_pe).replace('.', '', 1).isdigit():
+                    predict_next_year_pe = f"{float(predict_next_year_pe):.2f}"
+
                 formatted_item = {
                     "发布日期": item.get("publishDate", "N/A")[:10] if item.get("publishDate") else "N/A",
                     "研报标题": item.get("title", "N/A")[:30] + "..." if item.get("title") and len(item.get("title")) > 30 else item.get("title", "N/A"),
                     "评级": item.get("emRatingName", item.get("sRatingName", "N/A")),
                     "机构名称": item.get("orgName", "N/A"),
-                    "预期EPS": item.get("predictThisYearEps", "N/A"),
-                    "预期PE": item.get("predictThisYearPe", "N/A"),
+                    "预期EPS": predict_this_year_eps,
+                    "预期PE": predict_this_year_pe,
+                    "明年预期EPS": predict_next_year_eps,
+                    "明年预期PE": predict_next_year_pe,
                     "研究员": researchers,
 
                 }
