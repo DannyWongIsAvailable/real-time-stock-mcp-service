@@ -345,15 +345,16 @@ class FinancialDataInterface(ABC):
         pass
 
     @abstractmethod
-    def get_industry_valuation_comparison(self, stock_code: str) -> Optional[List[Dict[Any, Any]]]:
+    def get_industry_profit_comparison(self, stock_code: str, report_date: str = None) -> Optional[List[Dict[Any, Any]]]:
         """
-        获取同行业估值对比数据
+        获取同行业公司盈利数据
 
         Args:
             stock_code: 股票代码，包含交易所代码，如688041.SH
+            report_date: 报告日期，格式为 YYYY-MM-DD，可选参数
 
         Returns:
-            行业估值对比数据列表，每个元素是一个字典，包含同行业公司的基本财务和估值指标
+            同行业公司盈利数据列表，每个元素是一个字典，包含同行业公司的基本财务和盈利指标
             如果没有找到数据或出错，返回包含错误信息的列表或者None
 
         Raises:

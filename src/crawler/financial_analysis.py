@@ -11,9 +11,7 @@ class FinancialAnalysisCrawler(EastMoneyBaseSpider):
     用于获取股票的财报分析相关信息，如资产负债表、利润表、现金流量表等数据
     """
     
-    OPERATING_REVENUE_URL = "https://datacenter.eastmoney.com/securities/api/data/v1/get"
-    HOLDER_NUMBER_URL = "https://datacenter.eastmoney.com/securities/api/data/v1/get"
-    INDUSTRY_VALUATION_URL = "https://datacenter.eastmoney.com/securities/api/data/v1/get"
+    BASE_URL = "https://datacenter.eastmoney.com/securities/api/data/v1/get"
 
     def __init__(
             self,
@@ -54,7 +52,7 @@ class FinancialAnalysisCrawler(EastMoneyBaseSpider):
         }
         
         try:
-            response = self._get_json(self.OPERATING_REVENUE_URL, params)
+            response = self._get_json(self.BASE_URL, params)
             # 检查响应是否成功
             if response.get("code") == 0 and response.get("success") is True and response.get("result"):
                 return response["result"]["data"]
@@ -86,7 +84,7 @@ class FinancialAnalysisCrawler(EastMoneyBaseSpider):
         }
         
         try:
-            response = self._get_json(self.HOLDER_NUMBER_URL, params)
+            response = self._get_json(self.BASE_URL, params)
             # 检查响应是否成功
             if response.get("code") == 0 and response.get("success") is True and response.get("result"):
                 return response["result"]["data"]
@@ -97,35 +95,99 @@ class FinancialAnalysisCrawler(EastMoneyBaseSpider):
         except Exception as e:
             return [{"error": str(e)}]
 
-    def get_industry_valuation_comparison(self, stock_code: str) -> Optional[List[Dict[Any, Any]]]:
+    def get_latest_report_dates(self, stock_code: str) -> Optional[List[str]]:
         """
-        获取同行业估值对比数据
+        获取最新三个报告日期
 
         :param stock_code: 股票代码，包含交易所代码，如688041.SH
-        :return: 同行业估值对比数据列表
+        :return: 最新三个报告日期列表，格式为 YYYY-MM-DD
         """
         params = {
             "reportName": "RPT_F10_INDUSTRY_COMPARED",
-            "columns": "ALL",
+            "columns": "REPORT_DATE",
             "quoteColumns": "",
             "filter": f'(SECUCODE="{stock_code}")',
-            "sortTypes": "-1,1",
+            "sortTypes": "1,-1",
             "sortColumns": "IS_SELF,TOTALOPERATEREVE_RANK",
             "pageNumber": 1,
-            "pageSize": 50,  # 增加页面大小以获取更多数据
+            "pageSize": 4,
             "source": "F10",
             "client": "PC",
-            "v": "0915705654869751"
+            "v": "005130138354940328"
         }
         
         try:
-            response = self._get_json(self.INDUSTRY_VALUATION_URL, params)
+            response = self._get_json(self.BASE_URL, params)
             # 检查响应是否成功
             if response.get("code") == 0 and response.get("success") is True and response.get("result"):
-                return response["result"]["data"]
+                data = response["result"]["data"]
+                if data:
+                    dates = []
+                    seen_dates = set()
+                    for item in data:
+                        report_date = item.get("REPORT_DATE")
+                        if report_date:
+                            # 格式化为 YYYY-MM-DD
+                            formatted_date = report_date.split()[0]
+                            if formatted_date not in seen_dates:
+                                dates.append(formatted_date)
+                                seen_dates.add(formatted_date)
+                    return dates
+                else:
+                    return []
             else:
-                # 如果不成功，返回错误信息
+                # 如果不成功，记录错误信息
                 message = response.get("message", "未知错误")
-                return [{"error": message}]
+                return [message]
         except Exception as e:
-            return [{"error": str(e)}]
+            return [f"获取最新报告日期时发生异常: {str(e)}"]
+
+    def get_industry_profit_comparison(self, stock_code: str, report_dates: List[str] = None) -> Optional[List[Dict[Any, Any]]]:
+        """
+        获取同行业公司盈利数据
+
+        :param stock_code: 股票代码，数字后必须添加交易所代码，如688041.SH
+        :param report_dates: 报告日期列表，格式为 YYYY-MM-DD，如果未提供则使用最新三个报告日期
+        :return: 同行业公司盈利数据列表
+        """
+        # 如果没有提供报告日期，则获取最新的三个报告日期
+        if not report_dates:
+            report_dates = self.get_latest_report_dates(stock_code)
+            if not report_dates or isinstance(report_dates[0], str) and "异常" in report_dates[0]:
+                # 尝试使用一个默认的近期报告日期
+                import datetime
+                # 使用今年的年报日期作为备选方案
+                curr_year = datetime.datetime.now().year
+                default_date = f"{curr_year}-9-30"
+                print(f"无法获取最新报告日期，尝试使用默认日期: {default_date}")
+                report_dates = [default_date]
+
+        all_data = []
+        for report_date in report_dates:
+            params = {
+                "reportName": "RPT_F10_INDUSTRY_COMPARED",
+                "columns": "ALL",
+                "quoteColumns": "",
+                "filter": f'(SECUCODE="{stock_code}")(REPORT_DATE=\'{report_date}\')',
+                "sortTypes": "-1,1",
+                "sortColumns": "IS_SELF,TOTALOPERATEREVE_RANK",
+                "pageNumber": 1,
+                "pageSize": 4,
+                "source": "F10",
+                "client": "PC",
+                "v": "08494015389572059"
+            }
+            
+            try:
+                response = self._get_json(self.BASE_URL, params)
+                # 检查响应是否成功
+                if response.get("code") == 0 and response.get("success") is True and response.get("result"):
+                    all_data.extend(response["result"]["data"])
+                else:
+                    # 如果不成功，添加错误信息
+                    message = response.get("message", "未知错误")
+                    all_data.extend([{"error": message}])
+            except Exception as e:
+                all_data.extend([{"error": str(e)}])
+        
+        return all_data
