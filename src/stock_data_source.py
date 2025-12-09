@@ -124,3 +124,7 @@ class WebCrawlerDataSource(FinancialDataInterface):
 
     def get_industry_profit_comparison(self, stock_code: str, report_date: str = None) -> Optional[List[Dict[Any, Any]]]:
         return self.financial_analysis_crawler.get_industry_profit_comparison(stock_code, report_date)
+
+    def get_financial_ratios(self, stock_code: str, report_dates: List[str] = None) -> Optional[List[Dict[Any, Any]]]:
+        return self.financial_analysis_crawler.get_financial_ratios(stock_code, report_dates)
+

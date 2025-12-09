@@ -361,3 +361,22 @@ class FinancialDataInterface(ABC):
             DataSourceError: 当数据源出现错误时
         """
         pass
+
+    @abstractmethod
+    def get_financial_ratios(self, stock_code: str, report_dates: List[str] = None) -> Optional[List[Dict[Any, Any]]]:
+        """
+        获取财务比率数据
+
+        Args:
+            stock_code: 股票代码，包含交易所代码，如300750.SZ
+            report_dates: 报告日期列表，格式为 YYYY-MM-DD，可选参数
+
+        Returns:
+            财务比率数据列表，每个元素是一个字典，包含盈利能力、偿债能力、运营能力等关键财务指标
+            如果没有找到数据或出错，返回包含错误信息的列表或者None
+
+        Raises:
+            DataSourceError: 当数据源出现错误时
+        """
+        pass
+

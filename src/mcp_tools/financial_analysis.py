@@ -295,4 +295,175 @@ def register_financial_analysis_tools(app: FastMCP, data_source: FinancialDataIn
             logger.error(f"获取同行业公司盈利对比数据时出错: {e}")
             return f"获取同行业公司盈利对比数据失败: {str(e)}"
 
+    @app.tool()
+    def get_financial_ratios(stock_code: str) -> str:
+        """
+        获取财务比率数据
+
+        获取指定股票的财务比率数据，包括盈利能力、偿债能力、运营能力等关键财务指标。
+
+        Args:
+            stock_code: 股票代码，包含交易所代码，格式如300750.SZ
+
+        Returns:
+            财务比率数据的Markdown表格
+
+        Examples:
+            - get_financial_ratios("300750.SZ")
+        """
+        try:
+            logger.info(f"获取股票 {stock_code} 的财务比率数据")
+
+            # 从数据源获取财务比率数据
+            ratios_data = data_source.get_financial_ratios(stock_code)
+
+            if not ratios_data:
+                return f"未能获取到股票 {stock_code} 的财务比率数据"
+
+            # 检查是否返回错误信息
+            if isinstance(ratios_data, list) and len(ratios_data) > 0 and "error" in ratios_data[0]:
+                return f"获取财务比率数据失败: {ratios_data[0]['error']}"
+
+            # 格式化数据
+            formatted_data = []
+            for item in ratios_data:
+                # 盈利能力指标
+                weight_roe = item.get('WEIGHT_ROE')
+                if weight_roe is not None:
+                    weight_roe = f"{weight_roe:.2f}%"
+                
+                netprofit_yoy_ratio = item.get('NETPROFIT_YOY_RATIO')
+                if netprofit_yoy_ratio is not None:
+                    netprofit_yoy_ratio = f"{netprofit_yoy_ratio:.2f}%"
+                
+                core_rprofit_ratio = item.get('CORE_RPOFIT_RATIO')
+                if core_rprofit_ratio is not None:
+                    core_rprofit_ratio = f"{core_rprofit_ratio:.2f}%"
+                
+                gross_rprofit_ratio = item.get('GROSS_RPOFIT_RATIO')
+                if gross_rprofit_ratio is not None:
+                    gross_rprofit_ratio = f"{gross_rprofit_ratio:.2f}%"
+                
+                sale_npr = item.get('SALE_NPR')
+                if sale_npr is not None:
+                    sale_npr = f"{sale_npr:.2f}%"
+
+                # 偿债能力指标
+                debt_asset_ratio = item.get('DEBT_ASSET_RATIO')
+                if debt_asset_ratio is not None:
+                    debt_asset_ratio = f"{debt_asset_ratio:.2f}%"
+                
+                current_ratio = item.get('CURRENT_RATIO')
+                if current_ratio is not None:
+                    current_ratio = f"{current_ratio:.2f}"
+
+                # 运营能力指标
+                total_assets_tr = item.get('TOTAL_ASSETS_TR')
+                if total_assets_tr is not None:
+                    total_assets_tr = f"{total_assets_tr:.2f}"
+                
+                accounts_rece_tr = item.get('ACCOUNTS_RECE_TR')
+                if accounts_rece_tr is not None:
+                    accounts_rece_tr = f"{accounts_rece_tr:.2f}"
+                
+                inventory_tr = item.get('INVENTORY_TR')
+                if inventory_tr is not None:
+                    inventory_tr = f"{inventory_tr:.2f}"
+                
+                current_total_assets_tr = item.get('CURRENT_TOTAL_ASSETS_TR')
+                if current_total_assets_tr is not None:
+                    current_total_assets_tr = f"{current_total_assets_tr:.2f}"
+
+                # 成长能力指标
+                total_operate_income_ratio = item.get('TOTAL_OPERATE_INCOME_RATIO')
+                if total_operate_income_ratio is not None:
+                    total_operate_income_ratio = f"{total_operate_income_ratio:.2f}%"
+                
+                total_assets_ratio = item.get('TOTAL_ASSETS_RATIO')
+                if total_assets_ratio is not None:
+                    total_assets_ratio = f"{total_assets_ratio:.2f}%"
+
+                # 现金流指标
+                netcash_operate = item.get('NETCASH_OPERATE')
+                if netcash_operate is not None:
+                    netcash_operate = f"{_format_currency_value(netcash_operate)}元"
+                
+                netcash_invest = item.get('NETCASH_INVEST')
+                if netcash_invest is not None:
+                    netcash_invest = f"{_format_currency_value(netcash_invest)}元"
+                
+                netcash_finance = item.get('NETCASH_FINANCE')
+                if netcash_finance is not None:
+                    netcash_finance = f"{_format_currency_value(netcash_finance)}元"
+
+                # 核心利润和总利润
+                core_rprofit = item.get('CORE_RPOFIT')
+                if core_rprofit is not None:
+                    core_rprofit = f"{_format_currency_value(core_rprofit)}元"
+                
+                total_profit = item.get('TOTAL_PROFIT')
+                if total_profit is not None:
+                    total_profit = f"{_format_currency_value(total_profit)}元"
+
+                # 行业排名指标
+                weight_roe_rank = item.get('WEIGHT_ROE_RANK')
+                if weight_roe_rank is not None:
+                    weight_roe_rank = f"前{weight_roe_rank*100:.0f}%"
+                
+                netprofit_yoy_ratio_rank = item.get('NETPROFIT_YOY_RATIO_RANK')
+                if netprofit_yoy_ratio_rank is not None:
+                    netprofit_yoy_ratio_rank = f"前{netprofit_yoy_ratio_rank*100:.0f}%"
+                
+                total_assets_tr_rank = item.get('TOTAL_ASSETS_TR_RANK')
+                if total_assets_tr_rank is not None:
+                    total_assets_tr_rank = f"前{total_assets_tr_rank*100:.0f}%"
+                
+                sale_cash_ratio_rank = item.get('SALE_CASH_RATIO_RANK')
+                if sale_cash_ratio_rank is not None:
+                    sale_cash_ratio_rank = f"前{sale_cash_ratio_rank*100:.0f}%"
+                
+                debt_asset_ratio_rank = item.get('DEBT_ASSET_RATIO_RANK')
+                if debt_asset_ratio_rank is not None:
+                    debt_asset_ratio_rank = f"前{debt_asset_ratio_rank*100:.0f}%"
+
+                formatted_item = {
+                    '报告期': item.get('DATE_TYPE', ''),
+                    '财报日期': item.get('REPORT_DATE', '')[:10] if item.get('REPORT_DATE') else '',
+                    '加权ROE': weight_roe,
+                    'ROE排名': weight_roe_rank,
+                    '净利润增速': netprofit_yoy_ratio,
+                    '净利润增速排名': netprofit_yoy_ratio_rank,
+                    '毛利率': gross_rprofit_ratio,
+                    '净利率': sale_npr,
+                    '核心利润率': core_rprofit_ratio,
+                    '核心利润': core_rprofit,
+                    '利润总额': total_profit,
+                    '资产负债率': debt_asset_ratio,
+                    '资产负债率排名': debt_asset_ratio_rank,
+                    '流动比率': current_ratio,
+                    '总资产周转率': total_assets_tr,
+                    '总资产周转率排名': total_assets_tr_rank,
+                    '应收账款周转率': accounts_rece_tr,
+                    '存货周转率': inventory_tr,
+                    '流动资产周转率': current_total_assets_tr,
+                    '营收增速': total_operate_income_ratio,
+                    '总资产增速': total_assets_ratio,
+                    '经营现金流': netcash_operate,
+                    '投资现金流': netcash_invest,
+                    '融资现金流': netcash_finance,
+                }
+                formatted_data.append(formatted_item)
+
+            # 按报告期排序
+            formatted_data.sort(key=lambda x: x['财报日期'], reverse=True)
+
+            # 生成Markdown表格
+            table = format_list_to_markdown_table(formatted_data)
+            note = f"\n\n💡 显示 {len(formatted_data)} 条财务比率数据"
+            return f"## {stock_code} 财务比率数据\n\n{table}{note}"
+
+        except Exception as e:
+            logger.error(f"获取财务比率数据时出错: {e}")
+            return f"获取财务比率数据失败: {str(e)}"
+
     logger.info("财务分析工具已注册")

@@ -142,6 +142,60 @@ class FinancialAnalysisCrawler(EastMoneyBaseSpider):
         except Exception as e:
             return [f"获取最新报告日期时发生异常: {str(e)}"]
 
+    def get_financial_ratios(self, stock_code: str, report_dates: List[str] = None) -> Optional[List[Dict[Any, Any]]]:
+        """
+        获取财务比率数据
+        
+        :param stock_code: 股票代码，包含交易所代码，如688041.SH
+        :param report_dates: 报告日期列表，格式为 YYYY-MM-DD，如果未提供则使用最新两个报告日期
+        :return: 财务比率数据列表
+        """
+        # 如果没有提供报告日期，则获取最新的两个报告日期
+        if not report_dates:
+            latest_dates = self.get_latest_report_dates(stock_code)
+            # 只取前两个日期
+            report_dates = latest_dates[:4] if latest_dates else []
+            
+            # 处理可能的错误情况
+            if not report_dates or isinstance(report_dates[0], str) and "异常" in report_dates[0]:
+                return [{"error": "无法获取有效的报告日期"}]
+
+        all_data = []
+        for report_date in report_dates:
+            params = {
+                "reportName": "RPT_F10_FINANALYSIS",
+                "columns": "SECUCODE,SECURITY_CODE,ORG_CODE,REPORT_DATE,WEIGHT_ROE,NETPROFIT_YOY_RATIO,"
+                          "TOTAL_ASSETS_TR,SALE_CASH_RATIO,DEBT_ASSET_RATIO,CORE_RPOFIT,TOTAL_PROFIT,"
+                          "CORE_RPOFIT_RATIO,GROSS_RPOFIT_RATIO,SALE_NPR,CURRENT_RATIO,SX_RATIO,JX_RATIO,"
+                          "NETCASH_OPERATE,NETCASH_INVEST,NETCASH_FINANCE,ACCOUNTS_RECE_TR,INVENTORY_TR,"
+                          "CURRENT_TOTAL_ASSETS_TR,TOTAL_OPERATE_INCOME_RATIO,TOTAL_ASSETS_RATIO,GROUP_DATE,"
+                          "DATE_TYPE,WEIGHT_ROE_RANK,NETPROFIT_YOY_RATIO_RANK,TOTAL_ASSETS_TR_RANK,"
+                          "SALE_CASH_RATIO_RANK,DEBT_ASSET_RATIO_RANK",
+                "quoteColumns": "",
+                "filter": f'(SECUCODE="{stock_code}")(GROUP_DATE=\'{report_date}\')',
+                "sortTypes": "1",
+                "sortColumns": "REPORT_DATE",
+                "pageNumber": 1,
+                "pageSize": 200,
+                "source": "F10",
+                "client": "PC",
+                "v": "08657121137758819"
+            }
+            
+            try:
+                response = self._get_json(self.BASE_URL, params)
+                # 检查响应是否成功
+                if response.get("code") == 0 and response.get("success") is True and response.get("result"):
+                    all_data.extend(response["result"]["data"])
+                else:
+                    # 如果不成功，添加错误信息
+                    message = response.get("message", "未知错误")
+                    all_data.extend([{"error": message}])
+            except Exception as e:
+                all_data.extend([{"error": str(e)}])
+                
+        return all_data
+
     def get_industry_profit_comparison(self, stock_code: str, report_dates: List[str] = None) -> Optional[List[Dict[Any, Any]]]:
         """
         获取同行业公司盈利数据
