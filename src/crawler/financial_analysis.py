@@ -2,7 +2,7 @@ from src.crawler.base_crawler import EastMoneyBaseSpider
 
 import requests
 from typing import Optional, Dict, Any, List
-from src.utils.utils import add_exchange_suffix
+
 
 class FinancialAnalysisCrawler(EastMoneyBaseSpider):
     """

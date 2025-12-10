@@ -86,7 +86,7 @@ if __name__ == "__main__":
     # 获取 K 线
     spider = KlineSpider()
     klines = spider.get_klines(
-        "300750",
+        "300750.SZ",
         beg="20251123",
         end="20251128",
         klt=KlineSpider.KLT_DAY,

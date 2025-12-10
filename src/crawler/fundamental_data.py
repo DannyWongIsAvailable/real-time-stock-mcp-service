@@ -7,7 +7,6 @@ import requests
 from typing import Optional, Dict, Any, List
 
 
-
 class FundamentalDataCrawler(EastMoneyBaseSpider):
     """
     基本面数据爬虫类

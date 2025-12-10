@@ -2,7 +2,6 @@ import requests
 from typing import Dict, List, Optional
 from .base_crawler import EastMoneyBaseSpider
 
-
 class MarketSpider(EastMoneyBaseSpider):
     """
     市场板块行情爬虫类
