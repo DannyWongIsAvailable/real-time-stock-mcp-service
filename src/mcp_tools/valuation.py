@@ -82,7 +82,7 @@ def register_valuation_tools(app: FastMCP, data_source: FinancialDataInterface):
 
                 formatted_item = {
                     "发布日期": item.get("publishDate", "N/A")[:10] if item.get("publishDate") else "N/A",
-                    "研报标题": item.get("title", "N/A")[:30] + "..." if item.get("title") and len(item.get("title")) > 30 else item.get("title", "N/A"),
+                    "研报标题": item.get("title", "N/A")[:50] + "..." if item.get("title") and len(item.get("title")) > 50 else item.get("title", "N/A"),
                     "评级": item.get("emRatingName", item.get("sRatingName", "N/A")),
                     "机构名称": item.get("orgName", "N/A"),
                     "预期EPS": predict_this_year_eps,

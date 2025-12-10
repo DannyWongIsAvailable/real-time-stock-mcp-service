@@ -380,3 +380,21 @@ class FinancialDataInterface(ABC):
         """
         pass
 
+    @abstractmethod
+    def get_plate_quotation(self, plate_type: int = 2) -> List[Dict]:
+        """
+        获取板块行情数据
+
+        Args:
+            plate_type: 板块类型参数
+                - 1: 地域板块  
+                - 2: 行业板块 (默认)
+                - 3: 概念板块
+
+        Returns:
+            板块行情数据列表，每个元素是一个字典，包含板块的详细信息
+
+        Raises:
+            DataSourceError: 当数据源出现错误时
+        """
+        pass

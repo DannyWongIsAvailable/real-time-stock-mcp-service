@@ -128,3 +128,7 @@ class WebCrawlerDataSource(FinancialDataInterface):
     def get_financial_ratios(self, stock_code: str, report_dates: List[str] = None) -> Optional[List[Dict[Any, Any]]]:
         return self.financial_analysis_crawler.get_financial_ratios(stock_code, report_dates)
 
+    def get_plate_quotation(self, plate_type: int = 2) -> List[Dict]:
+        from src.crawler.market import MarketSpider
+        spider = MarketSpider()
+        return spider.get_plate_quotation(plate_type)

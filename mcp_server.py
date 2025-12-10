@@ -24,6 +24,7 @@ from src.mcp_tools.real_time_data import register_real_time_data_tools as regist
 from src.mcp_tools.fundamental import register_fundamental_tools as register_crawler_fundamental_tools
 from src.mcp_tools.valuation import register_valuation_tools as register_crawler_valuation_tools
 from src.mcp_tools.financial_analysis import register_financial_analysis_tools as register_crawler_financial_analysis_tools
+from src.mcp_tools.market import register_market_tools as register_crawler_market_tools
 
 
 # --- 日志配置 ---
@@ -52,6 +53,7 @@ app = FastMCP(
 - 计算技术指标
 - 基本面数据（主营构成、经营范围、经营评述等）
 - 估值分析数据（市盈率、市净率等）
+- 板块行情数据
 """
 )
 
@@ -66,6 +68,7 @@ register_crawler_kline_tools(app, active_data_source)
 register_crawler_fundamental_tools(app, active_data_source)
 register_crawler_valuation_tools(app, active_data_source)
 register_crawler_financial_analysis_tools(app, active_data_source)
+register_crawler_market_tools(app, active_data_source)
 
 logger.info("所有工具模块注册完成")
 

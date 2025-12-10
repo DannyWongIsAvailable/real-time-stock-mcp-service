@@ -73,13 +73,8 @@ class EastMoneyBaseSpider(ABC):
 
     @staticmethod
     def _parse_jsonp(text: str) -> Optional[Dict]:
-        """
-        解析 JSONP 响应
-
-        :param text: 形如 callback({...}) 的字符串
-        :return: 解析后的字典，失败返回 None
-        """
-        match = re.search(r'^\w+\((.*)\)$', text.strip(), re.DOTALL)
+        # 允许末尾有分号
+        match = re.search(r'^\w+\((.*)\);?$', text.strip(), re.DOTALL)
         if not match:
             return None
         try:
