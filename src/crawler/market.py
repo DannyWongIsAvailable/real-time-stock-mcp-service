@@ -17,6 +17,7 @@ class MarketSpider(EastMoneyBaseSpider):
     ):
         super().__init__(session, timeout)
         self.base_url = "https://push2.eastmoney.com/api/qt/clist/get"
+        self.fund_flow_url = "https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get"
 
     def get_plate_quotation(self, plate_type: int = 2) -> List[Dict]:
         """
@@ -54,4 +55,29 @@ class MarketSpider(EastMoneyBaseSpider):
             return response["data"]["diff"]
         else:
             return []
-
+    
+    def get_historical_fund_flow(self, stock_code: str) -> Optional[Dict]:
+        """
+        获取历史资金流向数据（最近10条）
+        
+        :param stock_code: 股票代码，数字后带上交易所代码，格式如688041.SH
+        :return: 包含资金流向历史数据的字典
+        """
+        secid = self.format_secid(stock_code)
+        params = {
+            "lmt": "10",
+            "klt": "101",
+            "fields1": "f1,f2,f3,f7",
+            "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63,f64,f65",
+            "ut": "b2884a393a59ad64002292a3e90d46a5",
+            "secid": secid,
+            "cb": self._generate_callback(),
+            "_": str(self._timestamp_ms())
+        }
+        
+        response = self._get_jsonp(self.fund_flow_url, params)
+        
+        if response and response.get("data"):
+            return response["data"]
+        else:
+            return None

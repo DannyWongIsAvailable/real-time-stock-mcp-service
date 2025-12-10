@@ -398,3 +398,23 @@ class FinancialDataInterface(ABC):
             DataSourceError: 当数据源出现错误时
         """
         pass
+
+    @abstractmethod
+    def get_historical_fund_flow(self, stock_code: str) -> Optional[Dict]:
+        """
+        获取历史资金流向数据
+
+        Args:
+            stock_code: 股票代码，数字后带上交易所代码，格式如688041.SH
+
+        Returns:
+            历史资金流向数据字典，包含以下字段：
+            - code: 股票代码
+            - market: 市场代码
+            - name: 指数名称
+            - klines: 资金流向历史数据列表，每个元素是包含日期和资金数据的字符串
+            
+        Raises:
+            DataSourceError: 当数据源出现错误时
+        """
+        pass

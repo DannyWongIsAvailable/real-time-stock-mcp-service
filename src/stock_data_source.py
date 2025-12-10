@@ -20,6 +20,7 @@ class WebCrawlerDataSource(FinancialDataInterface):
         self.fundamental_crawler = None
         self.valuation_crawler = None
         self.financial_analysis_crawler = None
+        self.market_spider = None
     
     def initialize(self) -> bool:
         try:
@@ -29,12 +30,14 @@ class WebCrawlerDataSource(FinancialDataInterface):
             from src.crawler.fundamental_data import FundamentalDataCrawler
             from src.crawler.valuation_data import ValuationDataCrawler
             from src.crawler.financial_analysis import FinancialAnalysisCrawler
+            from src.crawler.market import MarketSpider
             self.kline_spider = KlineSpider()
             self.searcher = StockSearcher()
             self.real_time_spider = RealTimeDataSpider()
             self.fundamental_crawler = FundamentalDataCrawler()
             self.valuation_crawler = ValuationDataCrawler()
             self.financial_analysis_crawler = FinancialAnalysisCrawler()
+            self.market_spider = MarketSpider()
             return True
         except Exception as e:
             return False
@@ -46,6 +49,7 @@ class WebCrawlerDataSource(FinancialDataInterface):
         self.fundamental_crawler = None
         self.valuation_crawler = None
         self.financial_analysis_crawler = None
+        self.market_spider = None
 
     def get_historical_k_data(
         self,
@@ -129,6 +133,7 @@ class WebCrawlerDataSource(FinancialDataInterface):
         return self.financial_analysis_crawler.get_financial_ratios(stock_code, report_dates)
 
     def get_plate_quotation(self, plate_type: int = 2) -> List[Dict]:
-        from src.crawler.market import MarketSpider
-        spider = MarketSpider()
-        return spider.get_plate_quotation(plate_type)
+        return self.market_spider.get_plate_quotation(plate_type)
+
+    def get_historical_fund_flow(self, stock_code: str) -> Optional[Dict]:
+        return self.market_spider.get_historical_fund_flow(stock_code)
