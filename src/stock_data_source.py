@@ -137,3 +137,6 @@ class WebCrawlerDataSource(FinancialDataInterface):
 
     def get_historical_fund_flow(self, stock_code: str) -> Optional[Dict]:
         return self.market_spider.get_historical_fund_flow(stock_code)
+
+    def get_billboard_data(self, trade_date: str = None) -> List[Dict]:
+        return self.market_spider.get_billboard_data(trade_date)

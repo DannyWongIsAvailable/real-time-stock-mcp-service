@@ -215,4 +215,123 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
             logger.error(f"工具执行出错: {e}")
             return f"执行失败: {str(e)}"
 
+    @app.tool()
+    def get_billboard_data(trade_date: str = None) -> str:
+        """
+        获取龙虎榜数据
+
+        获取指定交易日的龙虎榜数据，包括股票基本信息、行情数据、资金流向等。
+
+        Args:
+            trade_date: 交易日期，格式为 YYYY-MM-DD。
+
+        Returns:
+            格式化的龙虎榜数据，以Markdown表格形式展示
+
+        Examples:
+            - get_billboard_data()
+            - get_billboard_data("2025-12-10")
+        """
+        def _format_billboard_data(raw_data: List[Dict]) -> List[Dict]:
+            """
+            格式化龙虎榜数据
+
+            Args:
+                raw_data: 原始龙虎榜数据
+
+            Returns:
+                格式化后的龙虎榜数据列表
+            """
+            formatted_data = []
+            
+            for item in raw_data:
+                # 处理基础信息
+                security_code = item.get("SECURITY_CODE", "")
+                security_name = item.get("SECURITY_NAME_ABBR", "")
+                
+                # 处理行情数据
+                close_price = item.get("CLOSE_PRICE", 0)
+                change_rate = item.get("CHANGE_RATE", 0)
+                turnover_rate = item.get("TURNOVERRATE", 0)
+                
+                # 处理资金数据 (单位转换)
+                # 龙虎榜资金数据单位为元，需要转换为万元显示
+                billboard_net_amt = item.get("BILLBOARD_NET_AMT", 0)  # 净买额
+                billboard_buy_amt = item.get("BILLBOARD_BUY_AMT", 0)  # 买入额
+                billboard_sell_amt = item.get("BILLBOARD_SELL_AMT", 0)  # 卖出额
+                billboard_deal_amt = item.get("BILLBOARD_DEAL_AMT", 0)  # 成交额
+                accum_amount = item.get("ACCUM_AMOUNT", 0)  # 市场总成交额
+                
+                # 流通市值 (单位转换为亿元)
+                free_market_cap = item.get("FREE_MARKET_CAP", 0)  # 流通市值(元)
+                
+                # 处理占比数据
+                deal_net_ratio = item.get("DEAL_NET_RATIO", 0)  # 净买额占总成交比
+                deal_amount_ratio = item.get("DEAL_AMOUNT_RATIO", 0)  # 成交额占总成交比
+                
+                # 后续涨跌幅
+                d1_change = item.get("D1_CLOSE_ADJCHRATE", 0)  # 1日后涨跌幅
+                d2_change = item.get("D2_CLOSE_ADJCHRATE", 0)  # 2日后涨跌幅
+                d5_change = item.get("D5_CLOSE_ADJCHRATE", 0)  # 5日后涨跌幅
+                d10_change = item.get("D10_CLOSE_ADJCHRATE", 0)  # 10日后涨跌幅
+                
+                # 解读说明
+                explain = item.get("EXPLAIN", "")
+                explanation = item.get("EXPLANATION", "")  # 上榜原因
+                
+                formatted_item = {
+                    "证券代码": security_code,
+                    "名称": security_name,
+                    "收盘价": f"{close_price:.2f}元" if close_price else "N/A",
+                    "涨跌幅": f"{'+' if change_rate >= 0 else ''}{change_rate:.2f}%" if change_rate is not None else "N/A",
+                    "换手率": f"{turnover_rate:.2f}%" if turnover_rate is not None else "N/A",
+                    "流通市值": format_large_number(free_market_cap) if free_market_cap else "N/A",
+                    "龙虎榜净买额": format_large_number(billboard_net_amt) + "元" if billboard_net_amt else "N/A",
+                    "龙虎榜买入额": format_large_number(billboard_buy_amt) + "元" if billboard_buy_amt else "N/A",
+                    "龙虎榜卖出额": format_large_number(billboard_sell_amt) + "元" if billboard_sell_amt else "N/A",
+                    "龙虎榜成交额": format_large_number(billboard_deal_amt) + "元" if billboard_deal_amt else "N/A",
+                    "市场总成交额": format_large_number(accum_amount) + "元" if accum_amount else "N/A",
+                    "净买额占总成交比": f"{'+' if deal_net_ratio >= 0 else ''}{deal_net_ratio:.2f}%" if deal_net_ratio is not None else "N/A",
+                    "成交额占总成交比": f"{deal_amount_ratio:.2f}%" if deal_amount_ratio is not None else "N/A",
+                    "上榜原因": explanation,
+                    "解读": explain
+                }
+                
+                formatted_data.append(formatted_item)
+            
+            return formatted_data
+
+        try:
+            logger.info(f"获取龙虎榜数据: trade_date={trade_date}")
+            
+            # 初始化爬虫
+            from src.crawler.market import MarketSpider
+            spider = MarketSpider()
+            
+            # 获取原始数据
+            raw_data = spider.get_billboard_data(trade_date)
+            
+            # 检查是否有错误信息
+            if raw_data and "error" in raw_data[0]:
+                return f"获取龙虎榜数据失败: {raw_data[0]['error']}"
+            
+            if not raw_data:
+                return "未找到龙虎榜数据"
+            
+            # 格式化数据
+            formatted_data = _format_billboard_data(raw_data)
+            
+            # 转换为Markdown表格
+            table = format_list_to_markdown_table(formatted_data)
+            
+            # 添加说明
+            date_note = f"交易日期: {trade_date}" if trade_date else "未知"
+            note = f"\n\n💡 显示涨幅前10的龙虎榜股票，{date_note}"
+            
+            return f"## 涨幅前10的龙虎榜数据\n\n{table}{note}"
+
+        except Exception as e:
+            logger.error(f"工具执行出错: {e}")
+            return f"执行失败: {str(e)}"
+
     logger.info("市场板块行情工具已注册")

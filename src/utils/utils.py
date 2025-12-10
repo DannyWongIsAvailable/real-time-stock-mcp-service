@@ -83,6 +83,7 @@ def format_number(num: float, decimal_places: int = 2) -> str:
         return 'N/A'
     return f'{num:,.{decimal_places}f}'
 
+
 def format_large_number(value: float) -> str:
     """
     格式化数值为亿或万单位
@@ -95,11 +96,11 @@ def format_large_number(value: float) -> str:
     """
     abs_value = abs(value)
     if abs_value >= 100000000:  # 大于等于1亿
-        return f"{'+' if value >= 0 else ''}{value / 100000000:.2f}亿"
+        return f"{value / 100000000:.2f}亿"
     elif abs_value >= 10000:  # 大于等于1万
-        return f"{'+' if value >= 0 else ''}{value / 10000:.2f}万"
+        return f"{value / 10000:.2f}万"
     else:
-        return f"{'+' if value >= 0 else ''}{value:.0f}"
+        return f"{value:.0f}"
 
 
 def format_percentage(num: float, decimal_places: int = 2) -> str:

@@ -418,3 +418,17 @@ class FinancialDataInterface(ABC):
             DataSourceError: 当数据源出现错误时
         """
         pass
+
+    @abstractmethod
+    def get_billboard_data(self, trade_date: str = None) -> List[Dict]:
+        """
+        获取龙虎榜数据
+
+        Args:
+            trade_date: 交易日期，格式为 YYYY-MM-DD
+
+        Returns:
+            成功时返回龙虎榜数据列表，每个元素是一个字典
+
+        """
+        pass
