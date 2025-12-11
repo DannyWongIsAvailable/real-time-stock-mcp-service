@@ -143,3 +143,6 @@ class WebCrawlerDataSource(FinancialDataInterface):
 
     def get_stock_billboard_data(self, stock_code: str, limit: int = 10) -> List[Dict]:
         return self.market_spider.get_stock_billboard_data(stock_code, limit)
+
+    def get_growth_comparison(self, stock_code: str) -> Optional[List[Dict[Any, Any]]]:
+        return self.valuation_crawler.get_growth_comparison(stock_code)

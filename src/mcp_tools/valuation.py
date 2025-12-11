@@ -162,4 +162,78 @@ def register_valuation_tools(app: FastMCP, data_source: FinancialDataInterface):
             logger.error(f"工具执行出错: {e}")
             return f"执行失败: {str(e)}"
 
+    @app.tool()
+    def get_growth_comparison(stock_code: str) -> str:
+        """
+        获取成长性比较数据
+
+        Args:
+            stock_code: 股票代码，要在数字后加上交易所代码，格式如300750.SZ
+
+        Returns:
+            成长性比较数据的Markdown表格
+
+        Examples:
+            - get_growth_comparison("300750.SZ")
+        """
+        try:
+            logger.info(f"获取成长性比较数据: {stock_code}")
+
+            # 获取成长性比较数据
+            raw_data = data_source.get_growth_comparison(stock_code)
+
+            # 检查是否有错误信息
+            if raw_data is None:
+                return f"未找到股票代码 '{stock_code}' 的成长性比较数据"
+            
+            if isinstance(raw_data, list) and len(raw_data) > 0 and "error" in raw_data[0]:
+                error_msg = raw_data[0]["error"]
+                return f"获取成长性比较数据失败: {error_msg}"
+            
+            # 检查是否为空数据
+            if not raw_data:
+                return f"未找到股票 '{stock_code}' 的成长性比较数据"
+            
+            # 格式化为表格
+            table_data = []
+            for item in raw_data:
+                # 格式化数值字段，保留两位小数
+                def format_value(value):
+                    if value is None or value == "":
+                        return "N/A"
+                    try:
+                        return f"{float(value):.2f}"
+                    except (ValueError, TypeError):
+                        return str(value)
+                
+                formatted_item = {
+                    "证券代码": item.get("CORRE_SECURITY_CODE", "N/A"),
+                    "证券名称": item.get("CORRE_SECURITY_NAME", "N/A"),
+                    "营业收入增长率(24A)": format_value(item.get("YYSRTB")),
+                    "每股收益增长率(24A)": format_value(item.get("MGSYTB")),
+                    "净利润增长率(24A)": format_value(item.get("JLRTB")),
+                    "营业收入3年复合增长率": format_value(item.get("YYSR_3Y")),
+                    "每股收益3年复合增长率": format_value(item.get("MGSY_3Y")),
+                    "净利润3年复合增长率": format_value(item.get("JLR_3Y")),
+                    "营业收入增长率(TTM)": format_value(item.get("YYSRTTM")),
+                    "每股收益增长率(TTM)": format_value(item.get("MGSYTTM")),
+                    "净利润增长率(TTM)": format_value(item.get("JLRTTM")),
+                    "行业排名": item.get("PAIMING"),
+                }
+                table_data.append(formatted_item)
+            
+            result = f"**成长性比较数据 (共{len(table_data)}条记录)**\n\n"
+            result += format_list_to_markdown_table(table_data)
+            
+            # 添加报告日期信息
+            if raw_data and raw_data[0].get("REPORT_DATE"):
+                report_date = raw_data[0]["REPORT_DATE"].split(" ")[0]
+                result += f"\n\n数据截止日期: {report_date}"
+            
+            return result
+
+        except Exception as e:
+            logger.error(f"工具执行出错: {e}")
+            return f"执行失败: {str(e)}"
+
     logger.info("估值分析工具已注册")
