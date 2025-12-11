@@ -381,7 +381,7 @@ class FinancialDataInterface(ABC):
         pass
 
     @abstractmethod
-    def get_plate_quotation(self, plate_type: int = 2) -> List[Dict]:
+    def get_plate_quotation(self, plate_type: int = 2, page_size: int = 10) -> List[Dict]:
         """
         获取板块行情数据
 
@@ -390,6 +390,7 @@ class FinancialDataInterface(ABC):
                 - 1: 地域板块  
                 - 2: 行业板块 (默认)
                 - 3: 概念板块
+            page_size: 返回数据条数，默认为10条
 
         Returns:
             板块行情数据列表，每个元素是一个字典，包含板块的详细信息
@@ -400,12 +401,13 @@ class FinancialDataInterface(ABC):
         pass
 
     @abstractmethod
-    def get_historical_fund_flow(self, stock_code: str) -> Optional[Dict]:
+    def get_historical_fund_flow(self, stock_code: str, limit: int = 10) -> Optional[Dict]:
         """
         获取历史资金流向数据
 
         Args:
             stock_code: 股票代码，数字后带上交易所代码，格式如688041.SH
+            limit: 返回数据条数，默认为10条
 
         Returns:
             历史资金流向数据字典，包含以下字段：
@@ -435,12 +437,13 @@ class FinancialDataInterface(ABC):
         pass
 
     @abstractmethod
-    def get_historical_billboard_data(self, stock_code: str) -> List[Dict]:
+    def get_stock_billboard_data(self, stock_code: str, page_size: int = 10) -> List[Dict]:
         """
         获取龙虎榜上榜历史数据（历次上榜）
 
         Args:
             stock_code: 股票代码，如 688041
+            page_size: 返回数据条数，默认为10条
 
         Returns:
             成功时返回龙虎榜历史数据列表，每个元素是一个字典

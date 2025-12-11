@@ -24,17 +24,18 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
     """
 
     @app.tool()
-    def get_plate_quotation(plate_type: int = 2) -> str:
+    def get_plate_quotation(plate_type: int = 2, page_size: int = 10) -> str:
         """
         获取板块行情数据
 
-        获取东方财富网的涨跌幅前10板块行情数据，包括行业板块、概念板块、地域板块等。
+        获取东方财富网的涨跌幅前N板块行情数据，包括行业板块、概念板块、地域板块等。
 
         Args:
             plate_type: 板块类型参数
                 - 1: 地域板块  
                 - 2: 行业板块 (默认)
                 - 3: 概念板块
+            page_size: 返回数据条数，默认为10条
 
         Returns:
             格式化的板块行情数据，以Markdown表格形式展示
@@ -43,6 +44,7 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
             - get_plate_quotation()
             - get_plate_quotation(1)
             - get_plate_quotation(3)
+            - get_plate_quotation(2, 20)
         """
         def _format_plate_data(raw_data: List[Dict]) -> List[Dict]:
             """
@@ -93,12 +95,8 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
         try:
             logger.info(f"获取板块行情数据: 板块类型={plate_type}")
             
-            # 初始化爬虫
-            from src.crawler.market import MarketSpider
-            spider = MarketSpider()
-            
             # 获取原始数据
-            raw_data = spider.get_plate_quotation(plate_type)
+            raw_data = data_source.get_plate_quotation(plate_type, page_size)
             
             if not raw_data:
                 return "未找到板块行情数据"
@@ -112,29 +110,31 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
             # 添加说明
             plate_type_map = {1: "地域板块", 2: "行业板块", 3: "概念板块"}
             plate_name = plate_type_map.get(plate_type, "未知板块")
-            note = f"\n\n💡 显示涨跌幅前10{plate_name}的行情数据"
+            note = f"\n\n💡 显示涨跌幅前{page_size}{plate_name}的行情数据"
             
-            return f"## {plate_name}涨跌幅前10行情数据\n\n{table}{note}"
+            return f"## {plate_name}涨跌幅前{page_size}行情数据\n\n{table}{note}"
 
         except Exception as e:
             logger.error(f"工具执行出错: {e}")
             return f"执行失败: {str(e)}"
 
     @app.tool()
-    def get_historical_fund_flow(stock_code: str) -> str:
+    def get_historical_fund_flow(stock_code: str, limit: int = 10) -> str:
         """
         获取历史资金流向数据
 
-        获取指定股票最近10个交易日的资金流向数据，包括主力资金、散户资金、中单资金等的流入流出情况。
+        获取指定股票最近N个交易日的资金流向数据，包括主力资金、散户资金、中单资金等的流入流出情况。
 
         Args:
             stock_code: 股票代码，要在数字后带上交易所代码，格式如688041.SH
+            limit: 返回数据条数，默认为10条
 
         Returns:
             格式化的历史资金流向数据，以Markdown表格形式展示
 
         Examples:
             - get_historical_fund_flow("688041.SH")
+            - get_historical_fund_flow("688041.SH", 20)
         """
 
         def _format_fund_flow_data(raw_data: Dict) -> List[Dict]:
@@ -195,7 +195,7 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
             logger.info(f"获取历史资金流向数据: stock_code={stock_code}")
             
             # 通过数据源获取数据
-            fund_flow_data = data_source.get_historical_fund_flow(stock_code)
+            fund_flow_data = data_source.get_historical_fund_flow(stock_code, limit)
             
             if not fund_flow_data:
                 return "未找到历史资金流向数据"
@@ -209,7 +209,7 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
             # 获取名称
             index_name = fund_flow_data.get("name", "未知")
             
-            return f"## {index_name}历史资金流向数据\n\n{table}\n\n💡 显示最近10个交易日的资金流向数据，按日期倒序排列"
+            return f"## {index_name}历史资金流向数据\n\n{table}\n\n💡 显示最近{limit}个交易日的资金流向数据，按日期倒序排列"
 
         except Exception as e:
             logger.error(f"工具执行出错: {e}")
@@ -299,12 +299,8 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
         try:
             logger.info(f"获取龙虎榜数据: trade_date={trade_date}")
             
-            # 初始化爬虫
-            from src.crawler.market import MarketSpider
-            spider = MarketSpider()
-            
             # 获取原始数据
-            raw_data = spider.get_billboard_data(trade_date, page_size)
+            raw_data = data_source.get_billboard_data(trade_date, page_size)
             
             # 检查是否有错误信息
             if raw_data and "error" in raw_data[0]:
@@ -320,7 +316,7 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
             table = format_list_to_markdown_table(formatted_data)
             
             # 添加说明
-            note = f"\n\n💡 显示涨幅前{page_size}的龙虎榜股票，交易日期: {trade_date}"
+            note = f"\n\n💡 显示涨幅前{page_size}的龙虎榜股票，交易日期: {trade_date}，共{len(raw_data)}条数据"
             
             return f"## 涨幅前{page_size}的龙虎榜数据\n\n{table}{note}"
 
@@ -329,7 +325,7 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
             return f"执行失败: {str(e)}"
 
     @app.tool()
-    def get_stock_billboard_data(stock_code: str) -> str:
+    def get_stock_billboard_data(stock_code: str, page_size: int = 10) -> str:
         """
         获取龙虎榜上榜历史数据（历次上榜）
 
@@ -337,12 +333,14 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
 
         Args:
             stock_code: 股票代码，数字后带上交易所代码，格式如688041.SH
+            page_size: 返回数据条数，默认为10条
 
         Returns:
             格式化的龙虎榜上榜历史数据，以Markdown表格形式展示
 
         Examples:
             - get_historical_billboard_data("688041.SH")
+            - get_historical_billboard_data("688041.SH", 20)
         """
         def _format_stock_billboard_data(raw_data: List[Dict]) -> List[Dict]:
             """
@@ -406,13 +404,9 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
 
         try:
             logger.info(f"获取龙虎榜历史数据: stock_code={stock_code}")
-            
-            # 初始化爬虫
-            from src.crawler.market import MarketSpider
-            spider = MarketSpider()
-            
+
             # 获取原始数据
-            raw_data = spider.get_stock_billboard_data(stock_code)
+            raw_data = data_source.get_stock_billboard_data(stock_code, page_size)
             
             # 检查是否有错误信息
             if raw_data and "error" in raw_data[0]:

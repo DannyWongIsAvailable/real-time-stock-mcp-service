@@ -19,7 +19,7 @@ class MarketSpider(EastMoneyBaseSpider):
         self.fund_flow_url = "https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get"
         self.billboard_url = "https://datacenter-web.eastmoney.com/api/data/v1/get"
 
-    def get_plate_quotation(self, plate_type: int = 2) -> List[Dict]:
+    def get_plate_quotation(self, plate_type: int = 2, page_size: int = 10) -> List[Dict]:
         """
         获取板块行情数据
         
@@ -27,6 +27,7 @@ class MarketSpider(EastMoneyBaseSpider):
             - 1: 地域板块  
             - 2: 行业板块
             - 3: 概念板块
+        :param page_size: 返回数据条数，默认为10条
         :return: 板块行情数据列表
         """
         # 构建 fs 参数
@@ -41,7 +42,7 @@ class MarketSpider(EastMoneyBaseSpider):
             "fields": "f12,f13,f14,f1,f2,f4,f3,f152,f20,f8,f104,f105,f128,f140,f141,f207,f208,f209,f136,f222",
             "fid": "f3",
             "pn": "1",
-            "pz": "10",
+            "pz": str(page_size),
             "po": "1",
             "ut": "fa5fd1943c7b386f172d6893dbfba10b",
             "dect": "1",
@@ -56,16 +57,17 @@ class MarketSpider(EastMoneyBaseSpider):
         else:
             return []
     
-    def get_historical_fund_flow(self, stock_code: str) -> Optional[Dict]:
+    def get_historical_fund_flow(self, stock_code: str, limit: int = 10) -> Optional[Dict]:
         """
-        获取历史资金流向数据（最近10条）
+        获取历史资金流向数据
         
         :param stock_code: 股票代码，数字后带上交易所代码，格式如688041.SH
+        :param limit: 返回数据条数，默认为10条
         :return: 包含资金流向历史数据的字典
         """
         secid = self.format_secid(stock_code)
         params = {
-            "lmt": "10",
+            "lmt": str(limit),
             "klt": "101",
             "fields1": "f1,f2,f3,f7",
             "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63,f64,f65",
@@ -118,17 +120,18 @@ class MarketSpider(EastMoneyBaseSpider):
         else:
             return [{"error": "网络请求失败"}]
     
-    def get_stock_billboard_data(self, stock_code: str) -> list[dict]:
+    def get_stock_billboard_data(self, stock_code: str, page_size: int = 10) -> list[dict]:
         """
         获取股票历次上榜记录
         
         :param stock_code: 股票代码，数字后带上交易所代码，格式如688041.SH
+        :param page_size: 返回数据条数，默认为10条
         :return: 包含龙虎榜历史数据或错误信息的列表
         """
         params = {
             "sortColumns": "TRADE_DATE,TRADE_DATE",
             "sortTypes": "-1,-1",
-            "pageSize": 10,
+            "pageSize": page_size,
             "pageNumber": "1",
             "reportName": "RPT_BILLBOARD_PERFORMANCEHIS",
             "columns": "ALL",

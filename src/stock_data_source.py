@@ -132,14 +132,14 @@ class WebCrawlerDataSource(FinancialDataInterface):
     def get_financial_ratios(self, stock_code: str, report_dates: List[str] = None) -> Optional[List[Dict[Any, Any]]]:
         return self.financial_analysis_crawler.get_financial_ratios(stock_code, report_dates)
 
-    def get_plate_quotation(self, plate_type: int = 2) -> List[Dict]:
-        return self.market_spider.get_plate_quotation(plate_type)
+    def get_plate_quotation(self, plate_type: int = 2, page_size: int = 10) -> List[Dict]:
+        return self.market_spider.get_plate_quotation(plate_type, page_size)
 
-    def get_historical_fund_flow(self, stock_code: str) -> Optional[Dict]:
-        return self.market_spider.get_historical_fund_flow(stock_code)
+    def get_historical_fund_flow(self, stock_code: str, limit: int = 10) -> Optional[Dict]:
+        return self.market_spider.get_historical_fund_flow(stock_code, limit)
 
     def get_billboard_data(self, trade_date: str, page_size: int = 10) -> List[Dict]:
         return self.market_spider.get_billboard_data(trade_date, page_size)
 
-    def get_historical_billboard_data(self, stock_code: str) -> List[Dict]:
-        return self.market_spider.get_historical_billboard_data(stock_code)
+    def get_stock_billboard_data(self, stock_code: str, limit: int = 10) -> List[Dict]:
+        return self.market_spider.get_stock_billboard_data(stock_code, limit)
