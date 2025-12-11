@@ -57,6 +57,42 @@ class MarketSpider(EastMoneyBaseSpider):
         else:
             return []
     
+    def get_plate_fund_flow(self, plate_type: int = 2, page_size: int = 10) -> List[Dict]:
+        """
+        获取板块资金流今日排行
+        
+        :param plate_type: 板块类型参数
+            - 1: 地域板块  
+            - 2: 行业板块
+            - 3: 概念板块
+        :param page_size: 返回数据条数，默认为10条
+        :return: 板块资金流数据列表
+        """
+        # 构建 fs 参数
+        fs_param = f"m:90 t:{plate_type}"
+        
+        params = {
+            "np": "1",
+            "fltt": "2",
+            "invt": "2",
+            "cb": self._generate_callback(),
+            "fs": fs_param,
+            "fields": "f12,f14,f2,f3,f62,f184,f66,f69,f72,f75,f78,f81,f84,f87,f204,f205,f124,f1,f13",
+            "fid": "f62",
+            "pn": "1",
+            "pz": str(page_size),
+            "po": "1",
+            "ut": "8dec03ba335b81bf4ebdf7b29ec27d15",
+            "_": str(self._timestamp_ms())
+        }
+
+        response = self._get_jsonp(self.base_url, params)
+        
+        if response and response.get("data") and response["data"].get("diff"):
+            return response["data"]["diff"]
+        else:
+            return []
+    
     def get_historical_fund_flow(self, stock_code: str, limit: int = 10) -> Optional[Dict]:
         """
         获取历史资金流向数据

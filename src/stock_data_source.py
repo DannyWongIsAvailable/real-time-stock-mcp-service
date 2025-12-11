@@ -135,6 +135,9 @@ class WebCrawlerDataSource(FinancialDataInterface):
     def get_plate_quotation(self, plate_type: int = 2, page_size: int = 10) -> List[Dict]:
         return self.market_spider.get_plate_quotation(plate_type, page_size)
 
+    def get_plate_fund_flow(self, plate_type: int = 2, page_size: int = 10) -> List[Dict]:
+        return self.market_spider.get_plate_fund_flow(plate_type, page_size)
+
     def get_historical_fund_flow(self, stock_code: str, limit: int = 10) -> Optional[Dict]:
         return self.market_spider.get_historical_fund_flow(stock_code, limit)
 

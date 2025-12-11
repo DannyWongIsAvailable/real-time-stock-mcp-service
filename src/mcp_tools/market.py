@@ -542,4 +542,112 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
             logger.error(f"工具执行出错: {e}")
             return f"执行失败: {str(e)}"
 
+    @app.tool()
+    def get_plate_fund_flow(plate_type: int = 2, page_size: int = 10) -> str:
+        """
+        获取板块资金流今日排行，包括行业板块、概念板块、地域板块等的资金流入流出情况。
+
+        Args:
+            plate_type: 板块类型参数
+                - 1: 地域板块  
+                - 2: 行业板块 (默认)
+                - 3: 概念板块
+            page_size: 返回数据条数，默认为10条
+
+        Returns:
+            格式化的板块资金流数据，以Markdown表格形式展示
+
+        Examples:
+            - get_plate_fund_flow()
+            - get_plate_fund_flow(1)
+            - get_plate_fund_flow(3)
+            - get_plate_fund_flow(2, 20)
+        """
+        def _format_plate_fund_flow_data(raw_data: List[Dict]) -> List[Dict]:
+            """
+            格式化板块资金流数据
+
+            Args:
+                raw_data: 原始板块资金流数据
+
+            Returns:
+                格式化后的板块资金流数据列表
+            """
+            formatted_data = []
+
+            for item in raw_data:
+                # 基本信息
+                plate_code = item.get("f12", "")
+                plate_name = item.get("f14", "")
+                
+                # 价格信息
+                current_price = item.get("f2", 0)  if item.get("f2") else 0
+                change_percent = item.get("f3", 0) if item.get("f3") else 0
+                
+                # 资金流信息
+                main_net_inflow = item.get("f62", 0)  # 主力净流入
+                super_large_net_inflow = item.get("f66", 0)  # 超大单净流入
+                large_net_inflow = item.get("f72", 0)  # 大单净流入
+                medium_net_inflow = item.get("f78", 0)  # 中单净流入
+                small_net_inflow = item.get("f84", 0)  # 小单净流入
+                
+                # 资金流占比
+                main_net_inflow_ratio = item.get("f184", 0) if item.get("f184") else 0  # 主力净流入占比
+                super_large_ratio = item.get("f69", 0) if item.get("f69") else 0  # 超大单净流入占比
+                large_ratio = item.get("f75", 0) if item.get("f75") else 0  # 大单净流入占比
+                medium_ratio = item.get("f81", 0) if item.get("f81") else 0  # 中单净流入占比
+                small_ratio = item.get("f87", 0) if item.get("f87") else 0  # 小单净流入占比
+                
+                # 领涨股信息
+                leading_stock_name = item.get("f204", "")
+                leading_stock_code = item.get("f205", "")
+                
+                formatted_item = {
+                    "板块代码": plate_code,
+                    "板块名称": plate_name,
+                    "当前价格": f"{current_price:.2f}",
+                    "涨跌幅": f"{'+' if change_percent >= 0 else ''}{change_percent:.2f}%",
+                    "主力净流入": format_large_number(main_net_inflow),
+                    "主力净流入占比": f"{'+' if main_net_inflow_ratio >= 0 else ''}{main_net_inflow_ratio:.2f}%",
+                    "超大单净流入": format_large_number(super_large_net_inflow),
+                    "超大单净流入占比": f"{'+' if super_large_ratio >= 0 else ''}{super_large_ratio:.2f}%",
+                    "大单净流入": format_large_number(large_net_inflow),
+                    "大单净流入占比": f"{'+' if large_ratio >= 0 else ''}{large_ratio:.2f}%",
+                    "中单净流入": format_large_number(medium_net_inflow),
+                    "中单净流入占比": f"{'+' if medium_ratio >= 0 else ''}{medium_ratio:.2f}%",
+                    "小单净流入": format_large_number(small_net_inflow),
+                    "小单净流入占比": f"{'+' if small_ratio >= 0 else ''}{small_ratio:.2f}%",
+                    "领涨股": f"{leading_stock_name}({leading_stock_code})"
+                }
+
+                formatted_data.append(formatted_item)
+
+            return formatted_data
+
+        try:
+            logger.info(f"获取板块资金流数据: 板块类型={plate_type}")
+            
+            # 获取原始数据
+            raw_data = data_source.get_plate_fund_flow(plate_type, page_size)
+            
+            if not raw_data:
+                return "未找到板块资金流数据"
+            
+            # 格式化数据
+            formatted_data = _format_plate_fund_flow_data(raw_data)
+            
+            # 转换为Markdown表格
+            table = format_list_to_markdown_table(formatted_data)
+            
+            # 添加说明
+            plate_type_map = {1: "地域板块", 2: "行业板块", 3: "概念板块"}
+            plate_name = plate_type_map.get(plate_type, "未知板块")
+            note = f"\n\n💡 显示{plate_name}资金流数据，按主力净流入排序，共{len(formatted_data)}条数据"
+            
+            return f"## {plate_name}资金流数据\n\n{table}{note}"
+
+        except Exception as e:
+            logger.error(f"工具执行出错: {e}")
+            return f"执行失败: {str(e)}"
+
     logger.info("市场板块行情工具已注册")

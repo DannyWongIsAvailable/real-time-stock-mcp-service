@@ -383,6 +383,26 @@ class FinancialDataInterface(ABC):
         pass
 
     @abstractmethod
+    def get_plate_fund_flow(self, plate_type: int = 2, page_size: int = 10) -> List[Dict]:
+        """
+        获取板块资金流今日排行
+
+        Args:
+            plate_type: 板块类型参数
+                - 1: 地域板块  
+                - 2: 行业板块 (默认)
+                - 3: 概念板块
+            page_size: 返回数据条数，默认为10条
+
+        Returns:
+            板块资金流数据列表，每个元素是一个字典，包含板块的资金流信息
+
+        Raises:
+            DataSourceError: 当数据源出现错误时
+        """
+        pass
+
+    @abstractmethod
     def get_historical_fund_flow(self, stock_code: str, limit: int = 10) -> Optional[Dict]:
         """
         获取历史资金流向数据
