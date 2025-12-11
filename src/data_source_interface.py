@@ -449,3 +449,20 @@ class FinancialDataInterface(ABC):
             DataSourceError: 当数据源出现错误时
         """
         pass
+
+    @abstractmethod
+    def get_dupont_analysis_comparison(self, stock_code: str) -> Optional[List[Dict[Any, Any]]]:
+        """
+        获取杜邦分析比较数据
+
+        Args:
+            stock_code: 股票代码，包含交易所代码，如 300750.SZ
+
+        Returns:
+            杜邦分析比较数据列表，每个元素是一个字典，包含同行业公司的杜邦分析指标
+            如果没有找到数据或出错，返回包含错误信息的列表或者None
+
+        Raises:
+            DataSourceError: 当数据源出现错误时
+        """
+        pass

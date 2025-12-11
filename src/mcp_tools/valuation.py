@@ -245,4 +245,85 @@ def register_valuation_tools(app: FastMCP, data_source: FinancialDataInterface):
             logger.error(f"工具执行出错: {e}")
             return f"执行失败: {str(e)}"
 
+    @app.tool()
+    def get_dupont_analysis_comparison(stock_code: str) -> str:
+        """
+        获取杜邦分析比较数据
+
+        Args:
+            stock_code: 股票代码，要在数字后加上交易所代码，格式如600000.SH
+
+        Returns:
+            杜邦分析比较数据的Markdown表格
+
+        Examples:
+            - get_dupont_analysis_comparison("600000.SH")
+        """
+        try:
+            logger.info(f"获取杜邦分析比较数据: {stock_code}")
+
+            # 获取杜邦分析比较数据
+            raw_data = data_source.get_dupont_analysis_comparison(stock_code)
+
+            # 检查是否有错误信息
+            if raw_data is None:
+                return f"未找到股票代码 '{stock_code}' 的杜邦分析比较数据"
+            
+            if isinstance(raw_data, list) and len(raw_data) > 0 and "error" in raw_data[0]:
+                error_msg = raw_data[0]["error"]
+                return f"获取杜邦分析比较数据失败: {error_msg}"
+            
+            # 检查是否为空数据
+            if not raw_data:
+                return f"未找到股票 '{stock_code}' 的杜邦分析比较数据"
+            
+            # 格式化为表格
+            table_data = []
+            for item in raw_data:
+                # 格式化数值字段，保留两位小数
+                def format_value(value):
+                    if value is None or value == "":
+                        return "N/A"
+                    try:
+                        return f"{float(value):.2f}"
+                    except (ValueError, TypeError):
+                        return str(value)
+
+                formatted_item = {
+                    "证券代码": item.get("CORRE_SECURITY_CODE", "N/A"),
+                    "证券名称": item.get("CORRE_SECURITY_NAME", "N/A"),
+                    "净资产收益率(1年前)": format_value(item.get("ROEPJ_L1")),
+                    "净资产收益率(2年前)": format_value(item.get("ROEPJ_L2")),
+                    "净资产收益率(3年前)": format_value(item.get("ROEPJ_L3")),
+                    "净资产收益率(3年平均)": format_value(item.get("ROE_AVG")),
+                    "销售净利率(1年前)": format_value(item.get("XSJLL_L1")),
+                    "销售净利率(2年前)": format_value(item.get("XSJLL_L2")),
+                    "销售净利率(3年前)": format_value(item.get("XSJLL_L3")),
+                    "销售净利率(3年平均)": format_value(item.get("XSJLL_AVG")),
+                    "总资产周转率(1年前)": format_value(item.get("TOAZZL_L1")),
+                    "总资产周转率(2年前)": format_value(item.get("TOAZZL_L2")),
+                    "总资产周转率(3年前)": format_value(item.get("TOAZZL_L3")),
+                    "总资产周转率(3年平均)": format_value(item.get("TOAZZL_AVG")),
+                    "权益乘数(1年前)": format_value(item.get("QYCS_L1")),
+                    "权益乘数(2年前)": format_value(item.get("QYCS_L2")),
+                    "权益乘数(3年前)": format_value(item.get("QYCS_L3")),
+                    "权益乘数(3年平均)": format_value(item.get("QYCS_AVG")),
+                    "行业排名": item.get("PAIMING", "N/A"),
+                }
+                table_data.append(formatted_item)
+            
+            result = f"**杜邦分析比较数据 (共{len(table_data)}条记录)**\n\n"
+            result += format_list_to_markdown_table(table_data)
+            
+            # 添加报告日期信息
+            if raw_data and raw_data[0].get("REPORT_DATE"):
+                report_date = raw_data[0]["REPORT_DATE"].split(" ")[0]
+                result += f"\n\n数据截止日期: {report_date}"
+            
+            return result
+
+        except Exception as e:
+            logger.error(f"工具执行出错: {e}")
+            return f"执行失败: {str(e)}"
+
     logger.info("估值分析工具已注册")

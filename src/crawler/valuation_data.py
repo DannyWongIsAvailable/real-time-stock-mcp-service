@@ -25,6 +25,7 @@ class ValuationDataCrawler(EastMoneyBaseSpider):
     VALUATION_PERCENTILE_URL = "https://datacenter.eastmoney.com/securities/api/data/v1/get"
     INSTITUTIONAL_RATING_URL = "https://reportapi.eastmoney.com/report/list"
     GROWTH_COMPARISON_URL = "https://datacenter.eastmoney.com/securities/api/data/v1/get"
+    VALUATION_COMPARISON_URL = "https://datacenter.eastmoney.com/securities/api/data/v1/get"
     
     # 指标类型常量
     INDICATOR_TYPE_PE_TTM = 1  # 市盈率TTM
@@ -247,6 +248,41 @@ class ValuationDataCrawler(EastMoneyBaseSpider):
         
         try:
             response = self._get_json(self.GROWTH_COMPARISON_URL, params)
+            # 检查响应是否成功
+            if response.get("code") != 0 or response.get("success") is not True or not response.get("result"):
+                # 如果不成功，返回错误信息
+                message = response.get("message", "未知错误")
+                return [{"error": message}]
+            
+            data = response["result"]["data"]
+            return data
+            
+        except Exception as e:
+            return [{"error": str(e)}]
+
+    def get_dupont_analysis_comparison(self, stock_code: str) -> Optional[List[Dict[Any, Any]]]:
+        """
+        获取杜邦分析比较数据
+        
+        :param stock_code: 股票代码，要在数字后加上交易所代码，格式如300750.SZ
+        :return: 杜邦分析比较数据列表
+        """
+        params = {
+            "reportName": "RPT_PCF10_INDUSTRY_DBFX",
+            "columns": "ALL",
+            "quoteColumns": "",
+            "filter": f'(SECUCODE="{stock_code}")',
+            "pageNumber": "",
+            "pageSize": "",
+            "sortTypes": "1",
+            "sortColumns": "PAIMING",
+            "source": "HSF10",
+            "client": "PC",
+            "v": "03531384582222341"
+        }
+        
+        try:
+            response = self._get_json(self.VALUATION_COMPARISON_URL, params)
             # 检查响应是否成功
             if response.get("code") != 0 or response.get("success") is not True or not response.get("result"):
                 # 如果不成功，返回错误信息
