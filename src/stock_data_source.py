@@ -158,3 +158,6 @@ class WebCrawlerDataSource(FinancialDataInterface):
 
     def get_market_performance(self, secucode: str) -> Optional[List[Dict[Any, Any]]]:
         return self.market_spider.get_market_performance(secucode)
+
+    def get_current_plate_changes(self, page_size: int = 10) -> Optional[List[Dict[Any, Any]]]:
+        return self.market_spider.get_current_plate_changes(page_size)

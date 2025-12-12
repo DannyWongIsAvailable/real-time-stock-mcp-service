@@ -650,4 +650,143 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
             logger.error(f"工具执行出错: {e}")
             return f"执行失败: {str(e)}"
 
+    @app.tool()
+    def get_current_plate_changes(page_size: int = 10) -> str:
+        """
+        获取当日板块异动数据，包括各板块的涨跌幅、主力资金流向以及板块内异动个股等信息（异动总次数降序）。
+
+        Args:
+            page_size: 返回数据条数，默认为10条
+
+        Returns:
+            格式化的当日板块异动数据，以Markdown表格形式展示
+
+        Examples:
+            - get_current_plate_changes()
+            - get_current_plate_changes(30)
+        """
+        # 异动类型ID映射表
+        abnormal_type_map = {
+            "1": "顶级买单",
+            "2": "顶级卖单",
+            "4": "封涨停板",
+            "8": "封跌停板",
+            "16": "打开涨停板",
+            "32": "打开跌停板",
+            "64": "有大买盘",
+            "128": "有大卖盘",
+            "256": "机构买单",
+            "512": "机构卖单",
+            "8193": "大笔买入",
+            "8194": "大笔卖出",
+            "8195": "拖拉机买",
+            "8196": "拖拉机卖",
+            "8201": "火箭发射",
+            "8202": "快速反弹",
+            "8203": "高台跳水",
+            "8204": "加速下跌",
+            "8205": "买入撤单",
+            "8206": "卖出撤单",
+            "8207": "竞价上涨",
+            "8208": "竞价下跌",
+            "8209": "高开5日线",
+            "8210": "低开5日线",
+            "8213": "60日新高",
+            "8214": "60日新低",
+            "8215": "60日大幅上涨",
+            "8216": "60日大幅下跌",
+            "8217": "未知类型",
+            "8218": "未知类型",
+            "8219": "未知类型",
+            "8220": "未知类型",
+            "8221": "未知类型",
+            "8222": "未知类型"
+        }
+
+        def _format_abnormal_distribution(ydl_list: List[Dict]) -> List[str]:
+            """
+            格式化异动类型分布数组
+
+            Args:
+                ydl_list: 异动类型分布数组
+
+            Returns:
+                格式化后的异动类型分布列表
+            """
+            result = []
+            # 按出现次数降序排列
+            sorted_ydl = sorted(ydl_list, key=lambda x: x.get("ct", 0), reverse=True)
+            for item in sorted_ydl:
+                t = str(item.get("t", ""))
+                ct = item.get("ct", 0)
+                type_name = abnormal_type_map.get(t, f"未知类型({t})")
+                result.append(f"{type_name}({ct})")
+            return result
+
+        def _format_plate_changes_data(raw_data: List[Dict]) -> List[Dict]:
+            """
+            格式化板块异动数据
+
+            Args:
+                raw_data: 原始板块异动数据
+
+            Returns:
+                格式化后的板块异动数据列表
+            """
+            formatted_data = []
+
+            for item in raw_data:
+                # 基本信息
+                plate_code = item.get("c", "")          # 板块代码
+                plate_name = item.get("n", "")          # 板块名称
+                change_percent = item.get("u", 0)       # 板块涨跌幅
+                main_net_inflow = item.get("zjl", 0) * 1000   # 主力净流入金额（元）
+                stock_count = item.get("ct", 0)         # 板块内股票总数
+                
+                # 板块内异动最多股票信息
+                most_abnormal_stock = item.get("ms", {})
+                stock_name = most_abnormal_stock.get("n", "")
+                t = str(most_abnormal_stock.get("t", ""))
+                type_name = abnormal_type_map.get(t, f"未知类型({t})")
+                most_abnormal_stock_info = f"{stock_name}({type_name})" if stock_name and type_name else ""
+                
+                # 异动类型分布
+                abnormal_dist = item.get("ydl", [])
+                abnormal_dist_formatted = _format_abnormal_distribution(abnormal_dist)
+
+                formatted_item = {
+                    "板块代码": plate_code,
+                    "板块名称": plate_name,
+                    "涨跌幅": f"{'+' if float(change_percent) >= 0 else ''}{change_percent}%",
+                    "主力净流入": f"{format_large_number(main_net_inflow)} 元" ,
+                    "板块异动总次数": stock_count,
+                    "异动异动最频繁个股": most_abnormal_stock_info,
+                    "板块具体异动类型列表及出现次数": abnormal_dist_formatted
+                }
+
+                formatted_data.append(formatted_item)
+
+            return formatted_data
+
+        try:
+            logger.info(f"获取当日板块异动数据")
+            
+            # 获取原始数据
+            raw_data = data_source.get_current_plate_changes(page_size)
+            
+            if not raw_data:
+                return "未找到当日板块异动数据"
+            
+            # 格式化数据
+            formatted_data = _format_plate_changes_data(raw_data)
+            
+            # 转换为Markdown表格
+            table = format_list_to_markdown_table(formatted_data)
+            
+            return f"## 当日板块异动数据\n\n{table}\n\n💡 显示最近的{len(formatted_data)}个板块异动情况"
+
+        except Exception as e:
+            logger.error(f"工具执行出错: {e}")
+            return f"执行失败: {str(e)}"
+
     logger.info("市场板块行情工具已注册")

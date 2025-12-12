@@ -389,7 +389,7 @@ class FinancialDataInterface(ABC):
 
         Args:
             plate_type: 板块类型参数
-                - 1: 地域板块  
+                - 1: 地域板块
                 - 2: 行业板块 (默认)
                 - 3: 概念板块
             page_size: 返回数据条数，默认为10条
@@ -514,6 +514,23 @@ class FinancialDataInterface(ABC):
 
         Returns:
             市场表现数据列表，每个元素是一个字典，包含与大盘和行业板块的涨跌对比
+            如果没有找到数据或出错，返回包含错误信息的列表或者None
+
+        Raises:
+            DataSourceError: 当数据源出现错误时
+        """
+        pass
+
+    @abstractmethod
+    def get_current_plate_changes(self, page_size: int = 10) -> Optional[List[Dict[Any, Any]]]:
+        """
+        获取当日板块异动数据
+
+        Args:
+            page_size: 返回数据条数，默认为10条
+
+        Returns:
+            当日板块异动数据列表，每个元素是一个字典，包含板块异动相关信息
             如果没有找到数据或出错，返回包含错误信息的列表或者None
 
         Raises:

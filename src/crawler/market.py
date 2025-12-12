@@ -18,6 +18,7 @@ class MarketSpider(EastMoneyBaseSpider):
         self.base_url = "https://push2.eastmoney.com/api/qt/clist/get"
         self.fund_flow_url = "https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get"
         self.billboard_url = "https://datacenter-web.eastmoney.com/api/data/v1/get"
+        self.bk_changes_url = "https://push2ex.eastmoney.com/getAllBKChanges"
 
     def get_plate_quotation(self, plate_type: int = 2, page_size: int = 10) -> List[Dict]:
         """
@@ -190,6 +191,29 @@ class MarketSpider(EastMoneyBaseSpider):
         else:
             return [{"error": "网络请求失败"}]
 
+    def get_current_plate_changes(self, page_size: int = 10) -> Optional[List[Dict]]:
+        """
+        获取当日板块异动数据（异动总次数降序）
+        
+        :param page_size: 返回数据条数，默认为10条
+        :return: 当日板块异动数据列表
+        """
+        params = {
+            "cb": self._generate_callback(),
+            "ut": "7eea3edcaed734bea9cbfc24409ed989",
+            "dpt": "wzchanges",
+            "pageindex": "0",
+            "pagesize": str(page_size),
+            "_": str(self._timestamp_ms())
+        }
+
+        response = self._get_jsonp(self.bk_changes_url, params)
+        
+        if response and response.get("data") and response["data"].get("allbk"):
+            return response["data"]["allbk"]
+        else:
+            return None
+    
     def get_market_performance(self, secucode: str) -> Optional[List[Dict]]:
         """
         获取股票市场表现数据
