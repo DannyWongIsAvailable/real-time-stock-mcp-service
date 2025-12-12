@@ -168,3 +168,6 @@ class WebCrawlerDataSource(FinancialDataInterface):
     def get_macroeconomic_research(self, begin_time: str, 
                                   end_time: str) -> Optional[List[Dict[Any, Any]]]:
         return self.market_spider.get_macroeconomic_research(begin_time, end_time)
+
+    def get_real_time_market_indices(self) -> List[Dict]:
+        return self.real_time_spider.get_real_time_market_indices()

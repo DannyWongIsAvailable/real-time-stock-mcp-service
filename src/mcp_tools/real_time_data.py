@@ -8,6 +8,7 @@ import logging
 from mcp.server.fastmcp import FastMCP
 from src.data_source_interface import FinancialDataInterface
 from src.utils.utils import format_timestamp
+from src.utils.markdown_formatter import format_list_to_markdown_table
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +103,58 @@ def register_real_time_data_tools(app: FastMCP, data_source: FinancialDataInterf
             if tags:
                 tag_descriptions = [tag.get("description", "") for tag in tags]
                 result += f"\n**标签**: {', '.join(tag_descriptions)}"
+            
+            return result
+
+        except Exception as e:
+            logger.error(f"工具执行出错: {e}")
+            return f"执行失败: {str(e)}"
+
+    @app.tool()
+    def get_real_time_market_indices() -> str:
+        """
+        获取实时大盘指数数据，包括上证指数、深证成指、创业板指等的实时行情。
+
+        Returns:
+            格式化的实时大盘指数数据，以Markdown表格形式展示
+
+        Examples:
+            - get_real_time_market_indices()
+        """
+        try:
+            logger.info("获取实时大盘指数数据")
+
+            # 1. 使用data_source获取数据
+            indices_data = data_source.get_real_time_market_indices()
+
+            # 2. 处理数据
+            if not indices_data:
+                return "未找到数据"
+
+            # 3. 解包并格式化数据为表格
+            formatted_data = []
+            
+            for index_data in indices_data:
+                # 提取并格式化关键信息
+                name = index_data.get("f14", "N/A")  # 指数名称
+                code = index_data.get("f12", "N/A")  # 指数代码
+                point = index_data.get("f2", 0) / 100  # 指数点位
+                change_percent = index_data.get("f3", 0) / 100  # 涨跌幅(%)
+                change_point = index_data.get("f4", 0) / 100  # 涨跌点数
+
+                formatted_data.append({
+                    "指数代码": code,
+                    "指数名称": name,
+                    "当前点位": f"{point:.2f}",
+                    "涨跌点数": f"{change_point:.2f}",
+                    "涨跌幅": f"{change_percent:.2f}%"
+                })
+
+            # 使用format_list_to_markdown_table格式化为表格
+            table = format_list_to_markdown_table(formatted_data)
+            
+            result = "**实时大盘指数数据**\n\n"
+            result += table
             
             return result
 

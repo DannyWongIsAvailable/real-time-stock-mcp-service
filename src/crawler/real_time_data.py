@@ -1,5 +1,7 @@
+import time
+
 import requests
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from .base_crawler import EastMoneyBaseSpider
 
 
@@ -11,6 +13,7 @@ class RealTimeDataSpider(EastMoneyBaseSpider):
     """
 
     BASE_URL = "https://stock.xueqiu.com/v5/stock/quote.json"
+    MARKET_INDEX_URL = "https://push2.eastmoney.com/api/qt/ulist.np/get"
 
     def __init__(
             self,
@@ -75,6 +78,43 @@ class RealTimeDataSpider(EastMoneyBaseSpider):
 
         # 根据要求返回"data"部分
         return response.get("data", {})
+
+    def get_real_time_market_indices(self) -> List[Dict]:
+        """
+        获取实时大盘指数数据
+        
+        :return: 实时大盘指数数据列表
+        """
+        # 保存原始headers
+        original_headers = self.headers.copy()
+        
+        # 为东方财富API设置特定的headers
+        self.headers.update({
+            "Referer": "https://eastmoney.com/",
+            "Host": "push2.eastmoney.com",
+        })
+        
+        try:
+            params = {
+                "ut": "13697a1cc677c8bfa9a496437bfef419",
+                "fields": "f1,f2,f3,f4,f12,f13,f14",
+                "secids": "1.000001,1.000016,1.000300,1.000003,1.000688,0.399001,0.399006,0.399106,0.399003",
+                "_": str(int(time.time() * 1000))
+            }
+            
+            response = self._get_json(self.MARKET_INDEX_URL, params)
+            rc = response.get("rc", -1)
+            
+            if rc != 0:
+                raise Exception(f"获取大盘指数数据失败: rc={rc}")
+                
+            data = response.get("data", {})
+            diff = data.get("diff", [])
+            
+            return diff
+        finally:
+            # 恢复原始headers
+            self.headers = original_headers
 
 
 if __name__ == '__main__':

@@ -570,3 +570,15 @@ class FinancialDataInterface(ABC):
             DataSourceError: 当数据源出现错误时
         """
         pass
+
+    @abstractmethod
+    def get_real_time_market_indices(self) -> List[Dict]:
+        """
+        获取实时大盘指数数据
+
+        Returns:
+            实时大盘指数数据列表，每个元素是一个字典
+        Raises:
+            DataSourceError: 当数据源出现错误时
+        """
+        pass
