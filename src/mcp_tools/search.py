@@ -84,7 +84,8 @@ def register_search_tools(app: FastMCP, data_source: FinancialDataInterface):
     @app.tool()
     def get_stock_search(keyword: str) -> str:
         """
-        搜索股票信息，根据关键字搜索相关的股票信息。
+        搜索股票信息，根据关键字搜索相关的股票信息，支持模糊搜索。
+        得到准确的股票代码、名称、市场类型等
 
         Args:
             keyword: 搜索关键字，可以是股票代码、股票名称等
@@ -93,9 +94,9 @@ def register_search_tools(app: FastMCP, data_source: FinancialDataInterface):
             股票信息的Markdown表格
 
         Examples:
-            - get_stock_search("宁德时代")
+            - get_stock_search("宁德")
+            - get_stock_search("小米")
             - get_stock_search("300750")
-            - get_stock_search("新能源")
         """
         try:
             logger.info(f"搜索股票: 关键字 '{keyword}'")
