@@ -91,11 +91,9 @@ class WebCrawlerDataSource(FinancialDataInterface):
     def get_technical_indicators(
         self,
         stock_code: str,
-        start_date: str,
-        end_date: str,
-        frequency: str = "d",
+        page_size: int = 30
     ) -> List[Dict]:
-        return self.get_historical_k_data(stock_code, start_date, end_date, frequency)
+        return self.kline_spider.get_technical_indicators(stock_code, page_size)
 
     def get_last_trading_day(self) -> Optional[Dict]:
         return self.searcher.last_trading_day()

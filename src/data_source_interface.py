@@ -84,28 +84,14 @@ class FinancialDataInterface(ABC):
     def get_technical_indicators(
             self,
             stock_code: str,
-            start_date: str,
-            end_date: str,
-            frequency: str = "d",
+            page_size: int = 30
     ) -> List[Dict]:
         """
         获取技术指标数据
 
-        Args:
-            stock_code: 股票代码
-            start_date: 开始日期 (YYYY-MM-DD)
-            end_date: 结束日期 (YYYY-MM-DD)
-            frequency: K线周期，可选值: "d"(日), "w"(周), "m"(月), "5"(5分钟), "15"(15分钟), "30"(30分钟), "60"(60分钟)
-
-        Returns:
-            技术指标数据列表，每个元素是一个字典，包含以下字段：
-            date, ma5, ma10, ma20, ma60, macd, macd_signal, macd_hist, rsi6, rsi12, rsi24, kdj_k, kdj_d, kdj_j
-
-        Raises:
-            LoginError: If login to the data source fails.
-            NoDataFoundError: If no data is found for the query.
-            DataSourceError: For other data source related errors.
-            ValueError: If input parameters are invalid.
+        :param stock_code: 股票代码，如300750（不包含交易所代码）
+        :param page_size: 返回数据条数，默认为30条
+        :return: 技术指标数据列表
         """
         pass
 

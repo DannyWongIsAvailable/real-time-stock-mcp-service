@@ -43,6 +43,77 @@ def parse_kline_data(klines: List[str]) -> List[Dict]:
     return result
 
 
+def format_technical_indicators_data(technical_data: List[Dict]) -> List[Dict]:
+    """
+    格式化技术指标数据
+
+    Args:
+        technical_data: 原始技术指标数据列表
+
+    Returns:
+        格式化后的技术指标数据列表
+    """
+    formatted_data = []
+    
+    for item in technical_data:
+        # 解析交易日期，只保留日期部分
+        trade_date = item.get('TRADEDATE', '').split(' ')[0]
+        
+        # 格式化各项技术指标
+        formatted_item = {
+            '交易日期': trade_date,
+            '收盘价': format_number(item.get('NEW', 0)),
+            '开盘价': format_number(item.get('OPEN', 0)),
+            '最高价': format_number(item.get('HIGH', 0)),
+            '最低价': format_number(item.get('LOW', 0)),
+            
+            # MACD指标
+            'DIF': f"{item.get('DIF', 0):.4f}",
+            'DEA': f"{item.get('DEA', 0):.4f}",
+            'MACD': f"{item.get('MACD', 0):.4f}",
+            'MACD信号': item.get('MACDCOUT', ''),
+            
+            # KDJ指标
+            'K': f"{item.get('K', 0):.2f}",
+            'D': f"{item.get('D', 0):.2f}",
+            'J': f"{item.get('J', 0):.2f}",
+            'KDJ信号': item.get('KDJOUT', ''),
+            
+            # RSI指标
+            'RSI1(6日)': f"{item.get('RSI1', 0):.2f}",
+            'RSI2(12日)': f"{item.get('RSI2', 0):.2f}",
+            'RSI3(24日)': f"{item.get('RSI3', 0):.2f}",
+            'RSI信号': item.get('RSIOUT', ''),
+            
+            # BOLL指标
+            '中轨': format_number(item.get('MID', 0)),
+            '上轨': format_number(item.get('UPPER', 0)),
+            '下轨': format_number(item.get('LOWER', 0)),
+            'BOLL信号': item.get('BOLLOUT', ''),
+            
+            # BIAS指标
+            'BIAS1(6日)': f"{item.get('BIAS1', 0):.2f}",
+            'BIAS2(12日)': f"{item.get('BIAS2', 0):.2f}",
+            'BIAS3(24日)': f"{item.get('BIAS3', 0):.2f}",
+            'BIAS信号': item.get('BIASOUT', ''),
+            
+            # WR指标
+            'WR1(10日)': f"{item.get('WR1', 0):.2f}",
+            'WR2(20日)': f"{item.get('WR2', 0):.2f}",
+            'WR信号': item.get('WROUT', ''),
+            
+            # 市场数据
+            '近60日区间涨跌幅': f"{item.get('PCTCHANGE_STOCK', 0):+.2f}%",
+            '近60日区间振幅': f"{item.get('SWING', 0):.2f}%",
+            '近60日沪深300涨跌幅': f"{item.get('PCTCHANGE_INDEX', 0):+.2f}%",
+            '近60日区间换手率': f"{item.get('AVGTURN', 0):.2f}%"
+        }
+        
+        formatted_data.append(formatted_item)
+    
+    return formatted_data
+
+
 def register_kline_tools(app: FastMCP, data_source: FinancialDataInterface):
     """
     注册K线数据相关工具
@@ -132,3 +203,46 @@ def register_kline_tools(app: FastMCP, data_source: FinancialDataInterface):
             logger.error(f"获取K线时出错: {e}")
             return f"获取K线失败: {str(e)}"
 
+    @app.tool()
+    def get_technical_indicators(
+        stock_code: str,
+        page_size: int = 30
+    ) -> str:
+        """
+        获取指定股票的技术指标数据，包括MACD、KDJ、RSI、BOLL等技术指标。
+
+        Args:
+            stock_code: 股票代码，要在数字后加上交易所代码，格式如300750.SZ
+            page_size: 返回数据条数，默认为30条
+
+        Returns:
+            技术指标数据的Markdown表格
+
+        Examples:
+            - get_technical_indicators("300750.SZ")
+            - get_technical_indicators("300750.SZ", 20)
+        """
+        try:
+            logger.info(f"获取技术指标: {stock_code}, 条数: {page_size}")
+
+            # 从数据源获取技术指标数据
+            raw_technical_data = data_source.get_technical_indicators(stock_code, page_size)
+            
+            if not raw_technical_data:
+                return f"未找到股票代码 '{stock_code}' 的技术指标数据"
+            
+            # 格式化数据
+            formatted_data = format_technical_indicators_data(raw_technical_data)
+            
+            # 生成Markdown表格
+            table = format_list_to_markdown_table(formatted_data)
+            note = f"\n\n💡 显示 {len(formatted_data)} 条技术指标数据"
+            
+            # 添加股票名称
+            stock_name = raw_technical_data[0].get('SECURITY_NAME_ABBR', '') if raw_technical_data else ''
+            
+            return f"## {stock_name}({stock_code}) 技术指标数据\n\n{table}{note}"
+
+        except Exception as e:
+            logger.error(f"获取技术指标时出错: {e}")
+            return f"获取技术指标失败: {str(e)}"
