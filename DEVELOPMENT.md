@@ -44,11 +44,59 @@
                └─ smart_review.py           ← 智能点评和评分
 ```
 
-**优势**:
-- ✅ 易于切换数据源（只需实现接口）
-- ✅ 工具模块独立，互不影响
+本项目采用**依赖注入**设计模式：
+
+1. `crawler` 模块获取数据
+2. `data_source_interface.py` 定义抽象数据源接口
+3. `stock_data_source.py` 提供具体实现
+4. 各工具模块通过依赖注入获取数据源实例
+
+这种设计使得：
+- ✅ 易于扩展新功能
+- ✅ 可以轻松切换不同数据源
 - ✅ 便于单元测试
-- ✅ 清晰的代码结构
+- ✅ 代码解耦，维护性强
+
+## 工具模块
+
+项目包含8个MCP工具模块，每个模块提供特定领域的功能：
+
+- `search.py` - 股票搜索和交易日信息
+- `real_time_data.py` - 实时股票行情数据
+- `kline_data.py` - K线数据和技术指标
+- `fundamental.py` - 基本面数据（主营构成、经营范围等）
+- `valuation.py` - 估值分析数据（市盈率、市净率等）
+- `financial_analysis.py` - 财务分析数据（财务比率、业绩概况等）
+- `market.py` - 市场行情数据（板块行情、资金流向等）
+- `smart_review.py` - 智能点评和评分
+
+## 环境要求
+
+- Python 3.12+
+- Windows/Linux/MacOS
+- uv 包管理器
+
+## 准备项目
+
+1. 克隆项目
+   ```bash
+   git clone https://github.com/DannyWongIsAvailable/real-time-stock-mcp-service.git
+   ```
+
+2. 安装依赖
+   ```bash
+   pip install uv
+   ```
+
+3. 创建运行环境
+   ```bash
+   uv sync
+   ```
+
+4. 运行项目
+   ```bash
+   uv run python -m stock_mcp
+   ```
 
 ## 爬虫模块说明
 
@@ -98,7 +146,7 @@ class MyNewCrawler(EastMoneyBaseSpider):
 
 ```python
 # src/stock_data_source.py
-from src.stock_mcp.crawler import MyNewCrawler
+from stock_mcp.crawler import MyNewCrawler
 
 
 class WebCrawlerDataSource(FinancialDataInterface):
@@ -179,7 +227,7 @@ def get_new_feature_data(self, param: str) -> Dict[str, Any]:
 
 import logging
 from mcp.server.fastmcp import FastMCP
-from src.stock_mcp.data_source_interface import FinancialDataInterface
+from stock_mcp.data_source_interface import FinancialDataInterface
 
 logger = logging.getLogger(__name__)
 
@@ -235,7 +283,7 @@ def register_my_new_tools(app: FastMCP, data_source: FinancialDataInterface):
 
 ```python
 # 1. 导入注册函数
-from src.stock_mcp.mcp_tools import register_my_new_tools
+from stock_mcp.mcp_tools import register_my_new_tools
 
 # 2. 在注册区域添加
 register_my_new_tools(app, active_data_source)
@@ -250,7 +298,7 @@ register_my_new_tools(app, active_data_source)
 创建 `src/stock_mcp/another_data_source.py`:
 
 ```python
-from src.stock_mcp.data_source_interface import FinancialDataInterface
+from stock_mcp.data_source_interface import FinancialDataInterface
 
 
 class AnotherDataSource(FinancialDataInterface):
@@ -280,7 +328,7 @@ class AnotherDataSource(FinancialDataInterface):
 
 ```python
 # 修改这一行
-from src.stock_mcp.another_data_source import AnotherDataSource
+from stock_mcp.another_data_source import AnotherDataSource
 
 # 更改实例化
 active_data_source: FinancialDataInterface = AnotherDataSource()
@@ -358,9 +406,8 @@ def my_tool(param: str) -> str:
 
 ```python
 import pytest
-from src.stock_mcp.mcp_tools import register_my_new_tools
+from stock_mcp.mcp_tools import register_my_new_tools
 from unittest.mock import Mock
-
 
 def test_my_new_tool():
     # 创建模拟的数据源
@@ -402,7 +449,7 @@ setup_logging(level=logging.DEBUG)
 创建临时测试脚本:
 
 ```python
-from src.stock_mcp.stock_data_source import WebCrawlerDataSource
+from stock_mcp.stock_data_source import WebCrawlerDataSource
 
 # 测试某个功能
 data_source = WebCrawlerDataSource()
@@ -433,6 +480,7 @@ def my_function():
 ### Q: 如何优化API请求性能？
 
 **A**: 可以考虑：
+
 1. 添加缓存机制
 2. 批量请求
 3. 使用异步请求
