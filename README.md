@@ -26,7 +26,7 @@
 
 ### 1. 魔搭社区一键云部署
 
-您可以在魔搭社区MCP实验场在线体验该服务，也支持远程连接客户端（streamable HTTP或SSE协议）
+您可以在魔搭社区MCP实验场中在线体验该服务，也支持客户端远程连接（streamable HTTP或SSE协议）
 
 https://modelscope.cn/mcp/servers/DannyWong/real-time-stock-mcp
 

@@ -83,12 +83,12 @@
    git clone https://github.com/DannyWongIsAvailable/real-time-stock-mcp-service.git
    ```
 
-2. 安装依赖
+2. 安装uv
    ```bash
    pip install uv
    ```
 
-3. 创建运行环境
+3. 构建运行环境
    ```bash
    uv sync
    ```
