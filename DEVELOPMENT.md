@@ -9,34 +9,39 @@
 本项目采用依赖注入（Dependency Injection）设计模式，使得代码解耦、易于测试和扩展。
 
 ```
-┌─────────────────┐
-│  mcp_server.py  │  ← 主入口，协调各个组件
-└────────┬────────┘
-         │
-         ├─→ data_source_interface.py  ← 定义抽象接口
-         │
-         ├─→ stock_data_source.py   ← 具体实现
-         │
-         ├── utils/
-         │   ├── utils.py    # 工具模块通用工具
-         │   └── markdown_formatter.py   # Markdown格式化工具
-         │
-         ├── crawler/                   ← 网络爬虫模块
-         │   ├── base_crawler.py        # 爬虫基类
-         │   ├── basic_data.py          # 基础数据爬虫
-         │   ├── real_time_data.py      # 实时数据爬虫
-         │   ├── technical_data.py      # 技术数据爬虫
-         │   └── ...
-         │
-         └─→ mcp_tools/                     ← 各个MCP工具模块
-              ├─ search.py                 ← 股票搜索和交易日信息
-              ├─ real_time_data.py         ← 实时股票行情数据
-              ├─ kline_data.py             ← K线数据和技术指标
-              ├─ fundamental.py            ← 基本面数据（主营构成、经营范围等）
-              ├─ valuation.py              ← 估值分析数据（市盈率、市净率等）
-              ├─ financial_analysis.py      ← 财务分析数据（财务比率、业绩概况等）
-              ├─ market.py                 ← 市场行情数据（板块行情、资金流向等）
-              └─ smart_review.py           ← 智能点评和评分
+┌────────────────────┐
+│  src/stock_mcp/app.py  │  ← 主入口，协调各个组件
+└─────────┬──────────┘
+          │
+          ├─→ data_source_interface.py  ← 定义抽象接口
+          │
+          ├─→ stock_data_source.py   ← 具体实现
+          │
+          ├── utils/
+          │   ├── utils.py    # 工具模块通用工具
+          │   └── markdown_formatter.py   # Markdown格式化工具
+          │
+          ├── crawler/                   ← 网络爬虫模块
+          │   ├── base_crawler.py        # 爬虫基类
+          │   ├── basic_data.py          # 基础数据爬虫
+          │   ├── real_time_data.py      # 实时数据爬虫
+          │   ├── technical_data.py      # 技术数据爬虫
+          │   ├── financial_analysis.py  # 财务分析爬虫
+          │   ├── fundamental_data.py    # 基本面数据爬虫
+          │   ├── market.py              # 市场行情爬虫
+          │   ├── smart_review.py        # 智能点评爬虫
+          │   ├── valuation_data.py      # 估值分析爬虫
+          │   └── ...
+          │
+          └─→ mcp_tools/                     ← 各个MCP工具模块
+               ├─ search.py                 ← 股票搜索和交易日信息
+               ├─ real_time_data.py         ← 实时股票行情数据
+               ├─ kline_data.py             ← K线数据和技术指标
+               ├─ fundamental.py            ← 基本面数据（主营构成、经营范围等）
+               ├─ valuation.py              ← 估值分析数据（市盈率、市净率等）
+               ├─ financial_analysis.py      ← 财务分析数据（财务比率、业绩概况等）
+               ├─ market.py                 ← 市场行情数据（板块行情、资金流向等）
+               └─ smart_review.py           ← 智能点评和评分
 ```
 
 **优势**:
@@ -66,7 +71,7 @@
 
 #### 步骤 1: 创建新的爬虫类
 
-在 [src/crawler/](../src/crawler/) 目录下创建新的爬虫文件，继承 [EastMoneyBaseSpider](../src/crawler/base_crawler.py) 基类：
+在 [src/stock_mcp/crawler/](../src/stock_mcp/crawler/) 目录下创建新的爬虫文件，继承 [EastMoneyBaseSpider](../src/stock_mcp/crawler/base_crawler.py) 基类：
 
 ```python
 # src/crawler/my_new_crawler.py
@@ -89,7 +94,7 @@ class MyNewCrawler(EastMoneyBaseSpider):
 
 #### 步骤 2: 在数据源中使用新的爬虫
 
-在 [WebCrawlerDataSource](../src/stock_data_source.py) 中使用这个新的爬虫：
+在 [WebCrawlerDataSource](../src/stock_mcp/stock_data_source.py) 中使用这个新的爬虫：
 
 ```python
 # src/stock_data_source.py
@@ -108,7 +113,7 @@ class WebCrawlerDataSource(FinancialDataInterface):
 
 #### 步骤 3: 在接口中添加对应的方法
 
-在 [data_source_interface.py](../src/data_source_interface.py) 中添加对应的接口方法：
+在 [data_source_interface.py](../src/stock_mcp/data_source_interface.py) 中添加对应的接口方法：
 
 ```python
 @abstractmethod
@@ -131,7 +136,7 @@ def get_my_data(self, param: str) -> Dict[str, Any]:
 
 #### 步骤 1: 在接口中定义方法
 
-编辑 `src/data_source_interface.py`:
+编辑 `src/stock_mcp/data_source_interface.py`:
 
 ```python
 @abstractmethod
@@ -150,7 +155,7 @@ def get_new_feature_data(self, param: str) -> Dict[str, Any]:
 
 #### 步骤 2: 在具体实现中实现方法
 
-编辑 `src/stock_data_source.py`:
+编辑 `src/stock_mcp/stock_data_source.py`:
 
 ```python
 def get_new_feature_data(self, param: str) -> Dict[str, Any]:
@@ -163,7 +168,7 @@ def get_new_feature_data(self, param: str) -> Dict[str, Any]:
 
 #### 步骤 1: 创建工具模块文件
 
-创建 `src/mcp_tools/my_new_tool.py`:
+创建 `src/stock_mcp/mcp_tools/my_new_tool.py`:
 
 ```python
 """
@@ -226,7 +231,7 @@ def register_my_new_tools(app: FastMCP, data_source: FinancialDataInterface):
 
 #### 步骤 2: 在主文件中注册
 
-编辑 `mcp_server.py`:
+编辑 `src/stock_mcp/app.py`:
 
 ```python
 # 1. 导入注册函数
@@ -242,7 +247,7 @@ register_my_new_tools(app, active_data_source)
 
 #### 步骤 1: 创建新的数据源实现
 
-创建 `src/another_data_source.py`:
+创建 `src/stock_mcp/another_data_source.py`:
 
 ```python
 from src.stock_mcp.data_source_interface import FinancialDataInterface
@@ -271,11 +276,11 @@ class AnotherDataSource(FinancialDataInterface):
 
 #### 步骤 2: 修改主文件
 
-编辑 `mcp_server.py`:
+编辑 `src/stock_mcp/app.py`:
 
 ```python
 # 修改这一行
-from src.another_data_source import AnotherDataSource
+from src.stock_mcp.another_data_source import AnotherDataSource
 
 # 更改实例化
 active_data_source: FinancialDataInterface = AnotherDataSource()
@@ -386,7 +391,7 @@ uv run pytest tests/
 
 ### 1. 启用详细日志
 
-修改 `mcp_server.py`:
+修改 `src/stock_mcp/app.py`:
 
 ```python
 setup_logging(level=logging.DEBUG)

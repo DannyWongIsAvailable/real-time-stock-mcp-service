@@ -54,7 +54,7 @@ uv sync
 ### 直接运行服务器
 
 ```bash
-uv run app.py
+uv run src/stock_mcp/app.py
 ```
 
 ### client 中配置
@@ -88,25 +88,38 @@ uv run app.py
 
 ```
 real-time-stock-mcp-service/
-├── mcp_server.py              # MCP服务器主文件
+├── src/
+│   ├── stock_mcp/
+│   │   ├── app.py              # MCP服务器主文件
+│   │   ├── data_source_interface.py  # 数据源接口定义
+│   │   ├── stock_data_source.py      # 数据源实现
+│   │   ├── crawler/               # 网络爬虫模块
+│   │   │   ├── base_crawler.py       # 爬虫基类
+│   │   │   ├── basic_data.py         # 基础数据爬虫（股票搜索、交易日信息）
+│   │   │   ├── real_time_data.py     # 实时数据爬虫
+│   │   │   ├── technical_data.py     # 技术数据爬虫（K线数据）
+│   │   │   ├── financial_analysis.py # 财务分析爬虫
+│   │   │   ├── fundamental_data.py   # 基本面数据爬虫
+│   │   │   ├── market.py             # 市场行情爬虫
+│   │   │   ├── smart_review.py       # 智能点评爬虫
+│   │   │   ├── valuation_data.py     # 估值分析爬虫
+│   │   │   └── ...
+│   │   ├── mcp_tools/                # 各个MCP工具模块
+│   │   │   ├── search.py             # 股票搜索和交易日信息工具
+│   │   │   ├── real_time_data.py     # 实时数据工具
+│   │   │   ├── kline_data.py         # K线数据工具
+│   │   │   ├── fundamental.py        # 基本面数据工具
+│   │   │   ├── valuation.py          # 估值分析工具
+│   │   │   ├── financial_analysis.py # 财务分析工具
+│   │   │   ├── market.py             # 市场行情工具
+│   │   │   ├── smart_review.py       # 智能点评工具
+│   │   │   └── ...
+│   │   └── utils/                    # 工具模块
+│   │       ├── markdown_formatter.py # Markdown格式化工具
+│   │       └── utils.py              # 通用工具
 ├── pyproject.toml             # 项目配置文件
 ├── README.md                  # 项目说明文档
-└── src/
-    ├── crawler/               # 网络爬虫模块
-    │   ├── base_crawler.py       # 爬虫基类
-    │   ├── basic_data.py         # 基础数据爬虫（股票搜索、交易日信息）
-    │   ├── real_time_data.py     # 实时数据爬虫
-    │   ├── technical_data.py     # 技术数据爬虫（K线数据）
-    │   └── ...              
-    ├── data_source_interface.py  # 数据源接口定义
-    ├── stock_data_source.py      # 数据源实现
-    ├── mcp_tools/                # 各个MCP工具模块
-    │   ├── kline_data.py         # K线数据工具
-    │   ├── real_time_data.py     # 实时数据工具
-    │   └── ...
-    └── utils/                    # 工具模块
-        ├── markdown_formatter.py # Markdown格式化工具
-        └── utils.py              # 通用工具
+└── ...                        # 其他配置和文档文件
 ```
 
 ## 核心设计

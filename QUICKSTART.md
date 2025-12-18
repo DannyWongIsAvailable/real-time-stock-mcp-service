@@ -31,7 +31,7 @@ uv sync
 直接运行服务器:
 
 ```bash
-uv run app.py
+uv run src/stock_mcp/app.py
 ```
 
 服务器将启动并等待 MCP 客户端连接。
@@ -57,7 +57,7 @@ uv run app.py
         "--directory",
         "F:/path/to/your/project/real-time-stock-mcp-service",
         "run",
-        "app.py"
+        "src/stock_mcp/app.py"
       ]
     }
   }
@@ -79,7 +79,7 @@ uv run app.py
         "--directory",
         "/home/username/projects/real-time-stock-mcp-service",
         "run",
-        "app.py"
+        "src/stock_mcp/app.py"
       ]
     }
   }
@@ -89,7 +89,7 @@ uv run app.py
 
 ## 5. 查看日志
 
-如需查看详细日志，可以修改 `mcp_server.py` 中的日志级别:
+如需查看详细日志，可以修改 `src/stock_mcp/app.py` 中的日志级别:
 
 ```python
 setup_logging(level=logging.DEBUG)  # 改为 DEBUG 级别
