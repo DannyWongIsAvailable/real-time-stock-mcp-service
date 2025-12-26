@@ -82,7 +82,7 @@ def main() -> None:
     app = build_app(active_data_source)
     logger.info("工具模块注册完成")
 
-    # 3) 初始化数据源（失败不一定要退出，看你业务需求）
+    # 3) 初始化数据源
     try:
         if active_data_source.initialize():
             logger.info("✅ 数据源初始化成功")
