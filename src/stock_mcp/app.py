@@ -1,10 +1,5 @@
 """
 股票数据 MCP Server（托管友好入口）
-
-为什么这样改：
-1) 托管平台更喜欢 “python -m 包名” 这种稳定入口
-2) 避免依赖工作目录（cwd）导致 import src.* 失败
-3) 将 “构建应用/注册工具” 与 “初始化/运行/清理” 解耦，方便测试与排障
 """
 
 import logging
@@ -30,9 +25,6 @@ from stock_mcp.mcp_tools.smart_review import register_smart_review_tools
 def build_app(active_data_source: FinancialDataInterface) -> FastMCP:
     """
     构建 FastMCP app（只做“创建 + 注册工具”）
-    - 不在这里 initialize 数据源
-    - 不在这里 run
-    这样托管失败时更好定位：是构建期失败还是运行期失败
     """
     current_date = datetime.now().strftime("%Y-%m-%d")
 
@@ -54,7 +46,7 @@ def build_app(active_data_source: FinancialDataInterface) -> FastMCP:
 """,
     )
 
-    # ✅ 注册所有工具（建议：register_* 内不要做网络请求/阻塞初始化）
+    # ✅ 注册所有工具
     register_search_tools(app, active_data_source)
     register_real_time_data_tools(app, active_data_source)
     register_kline_tools(app, active_data_source)
@@ -82,7 +74,7 @@ def main() -> None:
     setup_logging(level=getattr(logging, log_level, logging.INFO))
     logger = logging.getLogger(__name__)
 
-    # 1) 依赖注入：后续切换数据源只改这里（符合你项目的 DI 设计）  :contentReference[oaicite:3]{index=3}
+    # 1) 依赖注入：后续切换数据源只改这里
     active_data_source: FinancialDataInterface = WebCrawlerDataSource()
     logger.info("数据源: %s", active_data_source.__class__.__name__)
 
@@ -107,7 +99,6 @@ def main() -> None:
         logger.info("🛑 服务被中断")
     except Exception:
         logger.exception("💥 服务运行出错")
-        # ✅ 托管环境：抛出异常让平台判定启动失败并保留日志
         raise
     finally:
         # 5) 清理资源
@@ -119,5 +110,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    # 允许开发阶段直接 python app.py 运行
     main()
