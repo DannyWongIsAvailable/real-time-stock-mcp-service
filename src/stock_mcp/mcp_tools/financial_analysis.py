@@ -254,8 +254,6 @@ def register_financial_analysis_tools(app: FastMCP, data_source: FinancialDataIn
                     avg_industry_roe = f"{avg_industry_roe:.2f}%"
 
                 formatted_item = {
-                    '证券代码': item.get('SECURITY_CODE', ''),
-                    '证券简称': item.get('SECURITY_NAME_ABBR', ''),
                     '关联代码': item.get('CORRE_SECURITY_CODE', ''),
                     '关联名称': item.get('CORRE_SECURITY_NAME', ''),
                     '行业': item.get('INDUSTRY', ''),

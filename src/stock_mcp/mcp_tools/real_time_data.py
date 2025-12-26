@@ -92,9 +92,9 @@ def register_real_time_data_tools(app: FastMCP, data_source: FinancialDataInterf
             }
 
             # 4. 直接格式化为Markdown
-            result = "**实时股票数据**\n\n"
+            result = "实时股票数据\n\n"
             for key, value in formatted_data.items():
-                result += f"- **{key}**: {value}\n"
+                result += f"- {key}: {value}\n"
             
             return result
 

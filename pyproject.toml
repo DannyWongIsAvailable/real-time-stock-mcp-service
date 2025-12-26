@@ -1,6 +1,6 @@
 [project]
 name = "real-time-stock-mcp-service"
-version = "1.1.1"
+version = "1.1.2"
 description = "一个获取实时股票数据服务和分析的MCP服务器"
 readme = "README.md"
 requires-python = ">=3.12"
