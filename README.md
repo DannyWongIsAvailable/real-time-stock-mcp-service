@@ -9,6 +9,10 @@
 - 免费免登录获取数据，免token
 - 部分功能支持B股，H股
 
+<a href="https://glama.ai/mcp/servers/@DannyWongIsAvailable/real-time-stock-mcp-service">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@DannyWongIsAvailable/real-time-stock-mcp-service/badge" alt="Real-time Stock Service MCP server" />
+</a>
+
 ## 功能特性
 
 - 📊 查找股票
