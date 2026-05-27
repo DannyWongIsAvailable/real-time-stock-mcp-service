@@ -32,19 +32,19 @@ class FinancialDataInterface(ABC):
         start_date: str,
         end_date: str,
         frequency: str = "d",
-    ) -> List[Dict]:
+    ) -> List[Dict[str, Any]]:
         """
-        获取K线数据
+        获取K线数据（雪球 API）
 
         Args:
-            stock_code: 股票代码
+            stock_code: 股票代码，格式如 601127.SH
             start_date: 开始日期 (YYYY-MM-DD)
             end_date: 结束日期 (YYYY-MM-DD)
             frequency: K线周期，可选值: "d"(日), "w"(周), "m"(月), "5"(5分钟), "15"(15分钟), "30"(30分钟), "60"(60分钟)
 
         Returns:
-            K线数据列表，每个元素是一个字典，包含以下字段：
-            date, open, close, high, low, volume, amount, amplitude, change_percent, change_amount, turnover_rate
+            雪球 K 线列表，每项为 {column: value} 字典，含 timestamp、open、close、
+            high、low、volume、amount、percent、chg、turnoverrate 等字段
 
         Raises:
             LoginError: If login to the data source fails.
@@ -115,15 +115,15 @@ class FinancialDataInterface(ABC):
         pass
 
     @abstractmethod
-    def get_real_time_data(self, symbol: str) -> Dict:
+    def get_real_time_data(self, symbol: str) -> Dict[str, Any]:
         """
-        获取股票实时数据
+        获取股票实时数据（雪球 quote.json）
 
         Args:
-            symbol: 股票代码，包含交易所代码，格式例如 SZ300750
+            symbol: 股票代码，格式如 601127.SH
 
         Returns:
-            实时股票数据字典，包含市场状态、报价等信息
+            雪球 API 的 data 字段，含 market、quote、others、tags，原样返回不做重组
 
         Raises:
             DataSourceError: 当数据源出现错误时

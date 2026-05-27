@@ -6,7 +6,7 @@ src/mcp_tools/fundamental.py
 import logging
 from mcp.server.fastmcp import FastMCP
 from stock_mcp.data_source_interface import FinancialDataInterface
-from stock_mcp.utils.markdown_formatter import format_list_to_markdown_table
+from stock_mcp.utils.markdown_formatter import format_list_to_markdown_table, format_markdown_report
 from stock_mcp.utils.utils import format_large_number
 
 logger = logging.getLogger(__name__)
@@ -50,10 +50,11 @@ def register_fundamental_tools(app: FastMCP, data_source: FinancialDataInterface
                 error_msg = raw_data["error"]
                 return f"获取主营业务范围数据失败: {error_msg}"
 
-            # 提取BUSINESS_SCOPE内容
-            business_scope = raw_data.get('BUSINESS_SCOPE', 'N/A')
-            
-            return business_scope
+            business_scope = raw_data.get("BUSINESS_SCOPE", "N/A")
+            return format_markdown_report(
+                f"{stock_code} 主营业务范围",
+                sections=[("内容", business_scope)],
+            )
 
         except Exception as e:
             logger.error(f"获取主营业务范围时出错: {e}")
@@ -136,13 +137,15 @@ def register_fundamental_tools(app: FastMCP, data_source: FinancialDataInterface
                 }
                 formatted_data.append(formatted_item)
 
-            table = format_list_to_markdown_table(formatted_data)
-            note = f"\n\n💡 显示 {len(formatted_data)} 条主营业务构成数据"
-            
+            note = f"💡 显示 {len(formatted_data)} 条主营业务构成数据"
             if report_date:
                 note += f"，报告期: {report_date}"
-                
-            return f"## {stock_code} 主营业务构成\n\n{table}{note}"
+
+            return format_markdown_report(
+                f"{stock_code} 主营业务构成",
+                table_data=formatted_data,
+                footnote=note,
+            )
 
         except Exception as e:
             logger.error(f"获取主营业务构成时出错: {e}")
@@ -179,11 +182,12 @@ def register_fundamental_tools(app: FastMCP, data_source: FinancialDataInterface
             # 提取BUSINESS_REVIEW内容
             business_review = raw_data.get('BUSINESS_REVIEW', 'N/A')
 
-            # 返回经营评述内容，如果没有则返回提示信息
-            if business_review and business_review != 'N/A':
-                return business_review
-            else:
-                return f"股票代码 '{stock_code}' 无经营评述数据"
+            if business_review and business_review != "N/A":
+                return format_markdown_report(
+                    f"{stock_code} 经营评述",
+                    sections=[("内容", business_review)],
+                )
+            return f"股票代码 '{stock_code}' 无经营评述数据"
 
         except Exception as e:
             logger.error(f"获取经营评述时出错: {e}")
@@ -280,9 +284,10 @@ def register_fundamental_tools(app: FastMCP, data_source: FinancialDataInterface
                         value = str(value)
                 formatted_data.append({'指标': name, '数值': value})
 
-            # 生成Markdown表格
-            table = format_list_to_markdown_table(formatted_data)
-            return f"## {stock_code} 公司主要财务数据\n\n{table}"
+            return format_markdown_report(
+                f"{stock_code} 公司主要财务数据",
+                table_data=formatted_data,
+            )
 
         except Exception as e:
             logger.error(f"获取公司主要财务数据时出错: {e}")

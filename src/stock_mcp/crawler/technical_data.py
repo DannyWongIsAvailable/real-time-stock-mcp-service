@@ -1,7 +1,10 @@
 from stock_mcp.crawler.base_crawler import EastMoneyBaseSpider
 
 import requests
+from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict, Any
+
+_CN_TZ = timezone(timedelta(hours=8))
 
 class KlineSpider(EastMoneyBaseSpider):
     """
@@ -12,9 +15,10 @@ class KlineSpider(EastMoneyBaseSpider):
         klines = spider.get_klines("300750", beg="20251101", end="20251130")
     """
 
-    BASE_URL = "https://push2his.eastmoney.com/api/qt/stock/kline/get"
+    BASE_URL = "https://stock.xueqiu.com/v5/stock/chart/kline.json"
     TECHNICAL_INDICATORS_URL = "https://datacenter-web.eastmoney.com/api/data/v1/get"
     PKYD_URL = "https://push2.eastmoney.com/api/qt/pkyd/get"  # 盘口异动API
+    XUEQIU_INDICATOR = "kline,pe,pb,ps,pcf,market_capital,agt,ggt,balance"
 
     # K线周期常量
     KLT_1MIN = 1
@@ -38,6 +42,84 @@ class KlineSpider(EastMoneyBaseSpider):
     ):
         super().__init__(session, timeout)
         self.headers["Referer"] = "https://quote.eastmoney.com/"
+        self._xueqiu_session_ready = False
+
+    def _ensure_xueqiu_session(self) -> None:
+        if self._xueqiu_session_ready:
+            return
+        self.session.get(
+            "https://xueqiu.com/",
+            headers={
+                **self.headers,
+                "Referer": "https://xueqiu.com/",
+            },
+            timeout=self.timeout,
+        )
+        self._xueqiu_session_ready = True
+
+    @staticmethod
+    def _format_xueqiu_symbol(stock_code: str) -> str:
+        code = stock_code.strip().upper()
+        if "." in code:
+            left, right = code.split(".", maxsplit=1)
+            if right == "SH":
+                return f"SH{left}"
+            if right == "SZ":
+                return f"SZ{left}"
+        if code.isdigit():
+            if code.startswith("6"):
+                return f"SH{code}"
+            return f"SZ{code}"
+        raise ValueError(f"无法解析股票代码: {stock_code}")
+
+    @staticmethod
+    def _parse_date(date_str: str) -> datetime:
+        normalized = date_str.replace("-", "").replace(" ", "").strip()
+        return datetime.strptime(normalized, "%Y%m%d").replace(tzinfo=_CN_TZ)
+
+    @staticmethod
+    def _date_to_ms(date_str: str, end_of_day: bool = True) -> int:
+        dt = KlineSpider._parse_date(date_str)
+        if end_of_day:
+            dt = dt.replace(hour=15, minute=0, second=0, microsecond=0)
+        return int(dt.timestamp() * 1000)
+
+    @staticmethod
+    def _klt_to_period(klt: int) -> str:
+        period_map = {
+            KlineSpider.KLT_1MIN: "1m",
+            KlineSpider.KLT_5MIN: "5m",
+            KlineSpider.KLT_15MIN: "15m",
+            KlineSpider.KLT_30MIN: "30m",
+            KlineSpider.KLT_60MIN: "60m",
+            KlineSpider.KLT_DAY: "day",
+            KlineSpider.KLT_WEEK: "week",
+            KlineSpider.KLT_MONTH: "month",
+        }
+        return period_map.get(klt, "day")
+
+    @staticmethod
+    def _fqt_to_type(fqt: int) -> str:
+        type_map = {
+            KlineSpider.FQT_NONE: "normal",
+            KlineSpider.FQT_FORWARD: "before",
+            KlineSpider.FQT_BACKWARD: "after",
+        }
+        return type_map.get(fqt, "before")
+
+    @staticmethod
+    def _calc_count(beg: str, end: str) -> int:
+        start = KlineSpider._parse_date(beg)
+        end_dt = KlineSpider._parse_date(end)
+        days = max((end_dt - start).days + 1, 1)
+        # 预留非交易日缓冲，单次最多拉 1023 根
+        return -min(int(days * 1.5) + 10, 1023)
+
+    @staticmethod
+    def _rows_from_xueqiu(data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        columns = data.get("column") or []
+        items = data.get("item") or []
+        return [dict(zip(columns, row)) for row in items]
 
     def get_klines(
             self,
@@ -46,41 +128,62 @@ class KlineSpider(EastMoneyBaseSpider):
             end: str = "20500101",
             klt: int = KLT_DAY,
             fqt: int = FQT_FORWARD,
-    ) -> List[str]:
+    ) -> List[Dict[str, Any]]:
         """
-        获取 K 线数据，支持A股，B股，H股，大盘
+        获取 K 线数据（雪球 API），支持 A 股日线/周线/月线及分钟线
 
-        :param stock_code: 股票代码，要在数字后加上交易所代码，格式如688041.SH
+        :param stock_code: 股票代码，格式如 601127.SH
         :param beg: 开始日期 YYYYMMDD
         :param end: 结束日期 YYYYMMDD
         :param klt: K线周期（使用 KLT_* 常量）
         :param fqt: 复权方式（使用 FQT_* 常量）
-        :return: K线数据列表
+        :return: K 线列表，每项为 {column: value} 字典
         """
-        secid = self.format_secid(stock_code)
+        symbol = self._format_xueqiu_symbol(stock_code)
+        self._ensure_xueqiu_session()
 
+        end_anchor = end if end != "20500101" else datetime.now(_CN_TZ).strftime("%Y%m%d")
         params = {
-            "fields1": "f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13",
-            "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61",
-            "beg": beg,
-            "end": end,
-            "ut": "fa5fd1943c7b386f172d6893dbfba10b",
-            "rtntype": "6",
-            "secid": secid,
-            "klt": str(klt),
-            "fqt": str(fqt),
+            "symbol": symbol,
+            "begin": str(self._date_to_ms(end_anchor)),
+            "period": self._klt_to_period(klt),
+            "type": self._fqt_to_type(fqt),
+            "count": str(self._calc_count(beg, end_anchor)),
+            "indicator": self.XUEQIU_INDICATOR,
         }
 
-        data = self._get_json(self.BASE_URL, params)
+        resp = self.session.get(
+            self.BASE_URL,
+            params=params,
+            headers={
+                **self.headers,
+                "Referer": f"https://xueqiu.com/S/{symbol}",
+            },
+            timeout=self.timeout,
+        )
+        resp.raise_for_status()
+        payload = resp.json()
 
-        if not data.get("data"):
-            raise RuntimeError(f"{secid}响应无 data 字段: {data}")
+        if payload.get("error_code") not in (0, None):
+            raise RuntimeError(
+                f"{symbol} 请求失败: {payload.get('error_description') or payload}"
+            )
 
-        klines = data["data"].get("klines")
-        if klines is None:
-            raise RuntimeError(f"{secid}响应无 klines 字段: {data}")
+        data = payload.get("data")
+        if not data:
+            raise RuntimeError(f"{symbol} 响应无 data 字段: {payload}")
 
-        return klines
+        rows = self._rows_from_xueqiu(data)
+        if not rows:
+            return []
+
+        start_ms = self._date_to_ms(beg, end_of_day=False)
+        end_ms = self._date_to_ms(end_anchor, end_of_day=True)
+        filtered = [
+            row for row in rows
+            if start_ms <= row.get("timestamp", 0) <= end_ms
+        ]
+        return filtered or rows
 
     def get_technical_indicators(
             self,
@@ -255,8 +358,8 @@ if __name__ == "__main__":
         fqt=KlineSpider.FQT_FORWARD,
     )
     print(f"K线数据 ({len(klines)} 条):")
-    for line in klines:
-        print(f"  {line}")
+    for row in klines:
+        print(f"  {row}")
         
     # 获取技术指标
     try:

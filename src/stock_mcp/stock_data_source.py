@@ -83,7 +83,7 @@ class WebCrawlerDataSource(FinancialDataInterface):
         start_date: str,
         end_date: str,
         frequency: str = "d",
-    ) -> List[Dict]:
+    ) -> List[Dict[str, Any]]:
         beg = start_date.replace("-", "")
         end = end_date.replace("-", "")
         frequency_map = {
@@ -120,7 +120,7 @@ class WebCrawlerDataSource(FinancialDataInterface):
     def get_last_trading_day(self) -> Optional[Dict]:
         return self.searcher.last_trading_day()
 
-    def get_real_time_data(self, symbol: str) -> Dict:
+    def get_real_time_data(self, symbol: str) -> Dict[str, Any]:
         return self.real_time_spider.get_real_time_data(symbol)
 
     def get_main_business(self, stock_code: str, report_date: Optional[str] = None) -> Optional[List[Dict[Any, Any]]]:

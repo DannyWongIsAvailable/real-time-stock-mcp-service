@@ -8,7 +8,7 @@ import logging
 from typing import List, Dict
 from mcp.server.fastmcp import FastMCP
 from stock_mcp.data_source_interface import FinancialDataInterface
-from stock_mcp.utils.markdown_formatter import format_list_to_markdown_table
+from stock_mcp.utils.markdown_formatter import format_list_to_markdown_table, format_markdown_report
 from stock_mcp.utils.utils import format_large_number
 
 logger = logging.getLogger(__name__)
@@ -102,15 +102,14 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
             # 格式化数据
             formatted_data = _format_plate_data(raw_data)
             
-            # 转换为Markdown表格
-            table = format_list_to_markdown_table(formatted_data)
-            
-            # 添加说明
             plate_type_map = {1: "地域板块", 2: "行业板块", 3: "概念板块"}
             plate_name = plate_type_map.get(plate_type, "未知板块")
-            note = f"\n\n💡 显示涨跌幅前{page_size}{plate_name}的行情数据"
-            
-            return f"## {plate_name}涨跌幅前{page_size}行情数据\n\n{table}{note}"
+
+            return format_markdown_report(
+                f"{plate_name}涨跌幅前{page_size}行情数据",
+                table_data=formatted_data,
+                footnote=f"💡 显示涨跌幅前{page_size}{plate_name}的行情数据",
+            )
 
         except Exception as e:
             logger.error(f"工具执行出错: {e}")
@@ -199,13 +198,15 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
             # 格式化数据
             formatted_data = _format_fund_flow_data(fund_flow_data)
             
-            # 转换为Markdown表格
-            table = format_list_to_markdown_table(formatted_data)
-            
-            # 获取名称
             index_name = fund_flow_data.get("name", "未知")
-            
-            return f"## {index_name}历史资金流向数据\n\n{table}\n\n💡 显示最近{limit}个交易日的资金流向数据，按日期倒序排列"
+
+            return format_markdown_report(
+                f"{index_name} 历史资金流向数据",
+                table_data=formatted_data,
+                footnote=(
+                    f"💡 显示最近{limit}个交易日的资金流向数据，按日期倒序排列"
+                ),
+            )
 
         except Exception as e:
             logger.error(f"工具执行出错: {e}")
@@ -307,12 +308,14 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
             formatted_data = _format_billboard_data(raw_data)
             
             # 转换为Markdown表格
-            table = format_list_to_markdown_table(formatted_data)
-            
-            # 添加说明
-            note = f"\n\n💡 显示涨幅前{page_size}的龙虎榜股票，交易日期: {trade_date}，共{len(raw_data)}条数据"
-            
-            return f"## 涨幅前{page_size}的龙虎榜数据\n\n{table}{note}"
+            return format_markdown_report(
+                f"涨幅前{page_size}的龙虎榜数据",
+                table_data=formatted_data,
+                footnote=(
+                    f"💡 显示涨幅前{page_size}的龙虎榜股票，"
+                    f"交易日期: {trade_date}，共{len(raw_data)}条数据"
+                ),
+            )
 
         except Exception as e:
             logger.error(f"工具执行出错: {e}")
@@ -411,18 +414,18 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
             # 格式化数据
             formatted_data = _format_stock_billboard_data(raw_data)
             
-            # 转换为Markdown表格
-            table = format_list_to_markdown_table(formatted_data)
-            
-            # 获取股票名称
             stock_name = ""
             if raw_data and isinstance(raw_data, list) and len(raw_data) > 0:
                 stock_name = raw_data[0].get("SECURITY_NAME_ABBR", "")
             
-            # 添加说明
-            note = f"\n\n💡 显示{stock_name}({stock_code})历史龙虎榜上榜记录，共{len(formatted_data)}条记录"
-            
-            return f"## {stock_name}({stock_code})历史龙虎榜上榜记录\n\n{table}{note}"
+            return format_markdown_report(
+                f"{stock_name}({stock_code}) 历史龙虎榜上榜记录",
+                table_data=formatted_data,
+                footnote=(
+                    f"💡 显示{stock_name}({stock_code})历史龙虎榜上榜记录，"
+                    f"共{len(formatted_data)}条记录"
+                ),
+            )
 
         except Exception as e:
             logger.error(f"工具执行出错: {e}")
@@ -528,15 +531,15 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
             # 格式化数据
             formatted_data = _format_market_performance_data(raw_data)
             
-            # 转换为Markdown表格
-            table = format_list_to_markdown_table(formatted_data)
-            
-            # 获取股票名称
             stock_name = ""
             if raw_data and isinstance(raw_data, list) and len(raw_data) > 0:
                 stock_name = raw_data[0].get("SECURITY_NAME_ABBR", "")
             
-            return f"## {stock_name}({secucode})市场表现数据\n\n{table}\n\n💡 显示{stock_name}与沪深300指数及所属行业板块的涨跌对比"
+            return format_markdown_report(
+                f"{stock_name}({secucode}) 市场表现数据",
+                table_data=formatted_data,
+                footnote=f"💡 显示{stock_name}与沪深300指数及所属行业板块的涨跌对比",
+            )
 
         except Exception as e:
             logger.error(f"工具执行出错: {e}")
@@ -636,15 +639,16 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
             # 格式化数据
             formatted_data = _format_plate_fund_flow_data(raw_data)
             
-            # 转换为Markdown表格
-            table = format_list_to_markdown_table(formatted_data)
-            
-            # 添加说明
             plate_type_map = {1: "地域板块", 2: "行业板块", 3: "概念板块"}
             plate_name = plate_type_map.get(plate_type, "未知板块")
-            note = f"\n\n💡 显示{plate_name}资金流数据，按主力净流入排序，共{len(formatted_data)}条数据"
-            
-            return f"## {plate_name}资金流数据\n\n{table}{note}"
+            return format_markdown_report(
+                f"{plate_name} 资金流数据",
+                table_data=formatted_data,
+                footnote=(
+                    f"💡 显示{plate_name}资金流数据，"
+                    f"按主力净流入排序，共{len(formatted_data)}条数据"
+                ),
+            )
 
         except Exception as e:
             logger.error(f"工具执行出错: {e}")
@@ -761,7 +765,7 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
                     "主力净流入": f"{format_large_number(main_net_inflow)} 元" ,
                     "板块异动总次数": stock_count,
                     "异动异动最频繁个股": most_abnormal_stock_info,
-                    "板块具体异动类型列表及出现次数": abnormal_dist_formatted
+                    "板块具体异动类型列表及出现次数": "；".join(abnormal_dist_formatted),
                 }
 
                 formatted_data.append(formatted_item)
@@ -780,10 +784,11 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
             # 格式化数据
             formatted_data = _format_plate_changes_data(raw_data)
             
-            # 转换为Markdown表格
-            table = format_list_to_markdown_table(formatted_data)
-            
-            return f"## 当日板块异动数据\n\n{table}\n\n💡 显示最近的{len(formatted_data)}个板块异动情况"
+            return format_markdown_report(
+                "当日板块异动数据",
+                table_data=formatted_data,
+                footnote=f"💡 显示最近的{len(formatted_data)}个板块异动情况",
+            )
 
         except Exception as e:
             logger.error(f"工具执行出错: {e}")
@@ -876,10 +881,14 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
             # 格式化数据
             formatted_data = _format_count_changes_data(raw_data)
             
-            # 转换为Markdown表格
-            table = format_list_to_markdown_table(formatted_data)
-            
-            return f"## 当日异动对数据对比情况\n\n{table}\n\n💡 显示当天截止当前时间出现异动的股票家数统计，相同股票同一类型重复出现记为一次"
+            return format_markdown_report(
+                "当日异动对数据对比情况",
+                table_data=formatted_data,
+                footnote=(
+                    "💡 显示当天截止当前时间出现异动的股票家数统计，"
+                    "相同股票同一类型重复出现记为一次"
+                ),
+            )
 
         except Exception as e:
             logger.error(f"工具执行出错: {e}")
@@ -948,10 +957,13 @@ def register_market_tools(app: FastMCP, data_source: FinancialDataInterface):
             # 格式化数据
             formatted_data = _format_macroeconomic_research_data(raw_data)
             
-            # 转换为Markdown表格
-            table = format_list_to_markdown_table(formatted_data)
-            
-            return f"## 宏观研究报告数据\n\n{table}\n\n💡 显示最近的宏观研究报告，时间范围从{begin_time}到{end_time}"
+            return format_markdown_report(
+                "宏观研究报告数据",
+                table_data=formatted_data,
+                footnote=(
+                    f"💡 显示最近的宏观研究报告，时间范围从{begin_time}到{end_time}"
+                ),
+            )
 
         except Exception as e:
             logger.error(f"工具执行出错: {e}")

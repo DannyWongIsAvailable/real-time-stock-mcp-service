@@ -6,7 +6,7 @@ src/mcp_tools/search.py
 import logging
 from mcp.server.fastmcp import FastMCP
 from stock_mcp.data_source_interface import FinancialDataInterface
-from stock_mcp.utils.markdown_formatter import format_list_to_markdown_table
+from stock_mcp.utils.markdown_formatter import format_list_to_markdown_table, format_markdown_report
 
 logger = logging.getLogger(__name__)
 
@@ -73,9 +73,11 @@ def register_search_tools(app: FastMCP, data_source: FinancialDataInterface):
                     '状态': trade_status,
                 })
 
-            table = format_list_to_markdown_table(formatted_data)
-            note = f"\n\n📅 当前日期: {now_date}"
-            return f"## 最近交易日信息\n\n{table}{note}"
+            return format_markdown_report(
+                "最近交易日信息",
+                table_data=formatted_data,
+                footnote=f"📅 当前日期: {now_date}",
+            )
 
         except Exception as e:
             logger.error(f"获取最近交易日信息时出错: {e}")
@@ -134,9 +136,11 @@ def register_search_tools(app: FastMCP, data_source: FinancialDataInterface):
                     '扩展小类类型': stock.get('extSmallType', ''),
                 })
             
-            table = format_list_to_markdown_table(formatted_data)
-            note = f"\n\n💡 找到 {len(formatted_data)} 只与 '{keyword}' 相关的股票"
-            return f"## 股票搜索结果\n\n{table}{note}"
+            return format_markdown_report(
+                "股票搜索结果",
+                table_data=formatted_data,
+                footnote=f"💡 找到 {len(formatted_data)} 只与 '{keyword}' 相关的股票",
+            )
 
         except Exception as e:
             logger.error(f"搜索股票时出错: {e}")

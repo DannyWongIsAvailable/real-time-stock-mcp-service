@@ -6,7 +6,7 @@ src/mcp_tools/financial_analysis.py
 import logging
 from mcp.server.fastmcp import FastMCP
 from stock_mcp.data_source_interface import FinancialDataInterface
-from stock_mcp.utils.markdown_formatter import format_list_to_markdown_table
+from stock_mcp.utils.markdown_formatter import format_list_to_markdown_table, format_markdown_report
 
 logger = logging.getLogger(__name__)
 
@@ -110,9 +110,11 @@ def register_financial_analysis_tools(app: FastMCP, data_source: FinancialDataIn
                 formatted_data.append(formatted_item)
 
             # 生成Markdown表格
-            table = format_list_to_markdown_table(formatted_data)
-            note = f"\n\n💡 显示 {len(formatted_data)} 条业绩概况数据"
-            return f"## {stock_code} 业绩概况数据\n\n{table}{note}"
+            return format_markdown_report(
+                f"{stock_code} 业绩概况数据",
+                table_data=formatted_data,
+                footnote=f"💡 显示 {len(formatted_data)} 条业绩概况数据",
+            )
 
         except Exception as e:
             logger.error(f"获取业绩概况数据时出错: {e}")
@@ -166,9 +168,11 @@ def register_financial_analysis_tools(app: FastMCP, data_source: FinancialDataIn
                 formatted_data.append(formatted_item)
 
             # 生成Markdown表格
-            table = format_list_to_markdown_table(formatted_data)
-            note = f"\n\n💡 显示 {len(formatted_data)} 条股东户数数据"
-            return f"## {stock_code} 股东户数数据\n\n{table}{note}"
+            return format_markdown_report(
+                f"{stock_code} 股东户数数据",
+                table_data=formatted_data,
+                footnote=f"💡 显示 {len(formatted_data)} 条股东户数数据",
+            )
 
         except Exception as e:
             logger.error(f"获取股东户数数据时出错: {e}")
@@ -278,10 +282,11 @@ def register_financial_analysis_tools(app: FastMCP, data_source: FinancialDataIn
                 }
                 formatted_data.append(formatted_item)
 
-            # 生成Markdown表格
-            table = format_list_to_markdown_table(formatted_data)
-            note = f"\n\n💡 显示 {len(formatted_data)} 条同行业公司盈利数据"
-            return f"## {stock_code} 同行业公司盈利对比数据\n\n{table}{note}"
+            return format_markdown_report(
+                f"{stock_code} 同行业公司盈利对比数据",
+                table_data=formatted_data,
+                footnote=f"💡 显示 {len(formatted_data)} 条同行业公司盈利数据",
+            )
 
         except Exception as e:
             logger.error(f"获取同行业公司盈利对比数据时出错: {e}")
@@ -454,9 +459,11 @@ def register_financial_analysis_tools(app: FastMCP, data_source: FinancialDataIn
             formatted_data.sort(key=lambda x: x['财报日期'], reverse=True)
 
             # 生成Markdown表格
-            table = format_list_to_markdown_table(formatted_data)
-            note = f"\n\n💡 显示 {len(formatted_data)} 条财务比率数据"
-            return f"## {stock_code} 财务比率数据\n\n{table}{note}"
+            return format_markdown_report(
+                f"{stock_code} 财务比率数据",
+                table_data=formatted_data,
+                footnote=f"💡 显示 {len(formatted_data)} 条财务比率数据",
+            )
 
         except Exception as e:
             logger.error(f"获取财务比率数据时出错: {e}")

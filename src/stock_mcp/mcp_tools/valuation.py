@@ -6,7 +6,7 @@ src/mcp_tools/valuation.py
 import logging
 from mcp.server.fastmcp import FastMCP
 from stock_mcp.data_source_interface import FinancialDataInterface
-from stock_mcp.utils.markdown_formatter import format_list_to_markdown_table
+from stock_mcp.utils.markdown_formatter import format_list_to_markdown_table, format_markdown_report
 
 logger = logging.getLogger(__name__)
 
@@ -92,10 +92,10 @@ def register_valuation_tools(app: FastMCP, data_source: FinancialDataInterface):
                 }
                 table_data.append(formatted_item)
             
-            result = f"**机构评级数据 (共{len(table_data)}条)**\n\n"
-            result += format_list_to_markdown_table(table_data)
-            
-            return result
+            return format_markdown_report(
+                f"机构评级数据 (共{len(table_data)}条)",
+                table_data=table_data,
+            )
 
         except Exception as e:
             logger.error(f"工具执行出错: {e}")
@@ -152,11 +152,11 @@ def register_valuation_tools(app: FastMCP, data_source: FinancialDataInterface):
                 }
                 table_data.append(formatted_row)
             
-            result = f"**估值分析数据 **\n\n"
-            result += format_list_to_markdown_table(table_data)
-            result += f"\n截至 {trade_date}， 统计周期:{statistics_cycle} "
-            
-            return result
+            return format_markdown_report(
+                "估值分析数据",
+                table_data=table_data,
+                footnote=f"截至 {trade_date}，统计周期: {statistics_cycle}",
+            )
 
         except Exception as e:
             logger.error(f"工具执行出错: {e}")
@@ -231,15 +231,16 @@ def register_valuation_tools(app: FastMCP, data_source: FinancialDataInterface):
                 }
                 table_data.append(formatted_item)
             
-            result = f"**成长性比较数据 (共{len(table_data)}条记录)**\n\n"
-            result += format_list_to_markdown_table(table_data)
-            
-            # 添加报告日期信息
+            footnote = None
             if raw_data and raw_data[0].get("REPORT_DATE"):
                 report_date = raw_data[0]["REPORT_DATE"].split(" ")[0]
-                result += f"\n\n数据截止日期: {report_date}"
-            
-            return result
+                footnote = f"数据截止日期: {report_date}"
+
+            return format_markdown_report(
+                f"成长性比较数据 (共{len(table_data)}条记录)",
+                table_data=table_data,
+                footnote=footnote,
+            )
 
         except Exception as e:
             logger.error(f"工具执行出错: {e}")
@@ -312,15 +313,16 @@ def register_valuation_tools(app: FastMCP, data_source: FinancialDataInterface):
                 }
                 table_data.append(formatted_item)
             
-            result = f"**杜邦分析比较数据 (共{len(table_data)}条记录)**\n\n"
-            result += format_list_to_markdown_table(table_data)
-            
-            # 添加报告日期信息
+            footnote = None
             if raw_data and raw_data[0].get("REPORT_DATE"):
                 report_date = raw_data[0]["REPORT_DATE"].split(" ")[0]
-                result += f"\n\n数据截止日期: {report_date}"
-            
-            return result
+                footnote = f"数据截止日期: {report_date}"
+
+            return format_markdown_report(
+                f"杜邦分析比较数据 (共{len(table_data)}条记录)",
+                table_data=table_data,
+                footnote=footnote,
+            )
 
         except Exception as e:
             logger.error(f"工具执行出错: {e}")
@@ -395,15 +397,16 @@ def register_valuation_tools(app: FastMCP, data_source: FinancialDataInterface):
                 }
                 table_data.append(formatted_item)
             
-            result = f"**估值比较数据 (共{len(table_data)}条记录)**\n\n"
-            result += format_list_to_markdown_table(table_data)
-            
-            # 添加报告日期信息
+            footnote = None
             if raw_data and raw_data[0].get("REPORT_DATE"):
                 report_date = raw_data[0]["REPORT_DATE"].split(" ")[0]
-                result += f"\n\n数据截止日期: {report_date}"
-            
-            return result
+                footnote = f"数据截止日期: {report_date}"
+
+            return format_markdown_report(
+                f"估值比较数据 (共{len(table_data)}条记录)",
+                table_data=table_data,
+                footnote=footnote,
+            )
 
         except Exception as e:
             logger.error(f"工具执行出错: {e}")

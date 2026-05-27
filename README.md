@@ -2,12 +2,11 @@
 
 ---
 
-这是一个实时股票数据服务的MCP服务器。它通过东方财富网获取金融数据，并将这些数据以工具的形式暴露给支持MCP的AI模型。
+这是一个实时股票数据服务的MCP服务器。它通过东方财富网和雪球网获取金融数据，并将这些数据以工具的形式暴露给支持MCP的Agent。
 
 > **代码仓库：** https://github.com/DannyWongIsAvailable/real-time-stock-mcp-service.git
 
-- 免费免登录获取数据，免token
-- 部分功能支持B股，H股
+- 免费免登录获取数据
 
 ## 功能特性
 
@@ -24,7 +23,7 @@
 
 ## 使用方法
 
-您可以通过以下2种方式使用本服务：
+您可以通过以下3种方式使用本服务：
 
 ### 1. 魔搭社区免费云资源一键部署
 
@@ -32,14 +31,7 @@
 
 https://modelscope.cn/mcp/servers/DannyWong/real-time-stock-mcp
 
-### 2. 本地stdio模式(以Claude Desktop为例)
-
-#### 在 Claude Desktop 中配置
-
-编辑 Claude Desktop 的配置文件：
-
-**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`  
-**MacOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`  
+### 2. 本地stdio模式(安装软件包运行)
 
 添加以下配置：
 
@@ -55,7 +47,21 @@ https://modelscope.cn/mcp/servers/DannyWong/real-time-stock-mcp
   }
 }
 ```
+  
+### 3 本地stdio模式(源代码运行)
+  
+```json
+{
+  "mcpServers": {
+    "stock-mcp": {
+      "command": "path/to/python.exe",
+      "args": ["-m", "stock_mcp"],
+      "cwd": "path/to/real-time-stock-mcp-service"
+    }
+  }
+}
 
+```
 > **注意：** 将路径替换为你的实际项目路径。
 
 

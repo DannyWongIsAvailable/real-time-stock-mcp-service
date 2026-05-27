@@ -4,43 +4,319 @@ src/mcp_tools/kline_data.py
 提供K线数据查询和分析功能
 """
 import logging
-from typing import List, Dict
+from datetime import datetime, timezone, timedelta
+from typing import List, Dict, Any
 from mcp.server.fastmcp import FastMCP
 from stock_mcp.data_source_interface import FinancialDataInterface
-from stock_mcp.utils.markdown_formatter import format_list_to_markdown_table
+from stock_mcp.utils.markdown_formatter import (
+    format_list_to_markdown_table,
+    format_markdown_report,
+    pick_columns,
+)
 from stock_mcp.utils.utils import format_number, format_large_number
 
 logger = logging.getLogger(__name__)
 
+_CN_TZ = timezone(timedelta(hours=8))
 
-def parse_kline_data(klines: List[str]) -> List[Dict]:
+# 雪球 K 线 column 字段（与 API 返回顺序一致）
+XUEQIU_KLINE_COLUMNS = [
+    "timestamp",
+    "volume",
+    "open",
+    "high",
+    "low",
+    "close",
+    "chg",
+    "percent",
+    "turnoverrate",
+    "amount",
+    "volume_post",
+    "amount_post",
+    "pe",
+    "pb",
+    "ps",
+    "pcf",
+    "market_capital",
+    "balance",
+    "hold_volume_cn",
+    "hold_ratio_cn",
+    "net_volume_cn",
+    "hold_volume_hk",
+    "hold_ratio_hk",
+    "net_volume_hk",
+]
+
+XUEQIU_KLINE_LABELS = {
+    "timestamp": "日期",
+    "volume": "成交量",
+    "open": "开盘",
+    "high": "最高",
+    "low": "最低",
+    "close": "收盘",
+    "chg": "涨跌额",
+    "percent": "涨跌幅",
+    "turnoverrate": "换手率",
+    "amount": "成交额",
+    "volume_post": "盘后成交量",
+    "amount_post": "盘后成交额",
+    "pe": "市盈率(PE)",
+    "pb": "市净率(PB)",
+    "ps": "市销率(PS)",
+    "pcf": "市现率(PCF)",
+    "market_capital": "总市值",
+    "balance": "余额",
+    "hold_volume_cn": "陆股通持股量",
+    "hold_ratio_cn": "陆股通持股比例",
+    "net_volume_cn": "陆股通净买入",
+    "hold_volume_hk": "港股通持股量",
+    "hold_ratio_hk": "港股通持股比例",
+    "net_volume_hk": "港股通净买入",
+}
+
+
+def _format_nullable(value: Any, formatter) -> str:
+    if value is None:
+        return "-"
+    return formatter(value)
+
+
+def format_kline_row(kline: Dict[str, Any]) -> Dict[str, str]:
+    """将单条雪球 K 线字典格式化为 Markdown 表格行（中文列名）"""
+    open_price = float(kline.get("open") or 0)
+    close_price = float(kline.get("close") or 0)
+    high_price = float(kline.get("high") or 0)
+    low_price = float(kline.get("low") or 0)
+
+    if close_price > open_price:
+        status = "上涨（阳线）"
+    elif close_price < open_price:
+        status = "下跌（阴线）"
+    else:
+        status = "平盘（十字星）"
+
+    amplitude = (high_price - low_price) / open_price * 100 if open_price else 0.0
+    ts = kline.get("timestamp")
+    date_str = (
+        datetime.fromtimestamp(ts / 1000, tz=_CN_TZ).strftime("%Y-%m-%d")
+        if ts else "-"
+    )
+
+    percent = float(kline.get("percent") or 0)
+    row = {
+        "日期": date_str,
+        "K线状态": status,
+        "开盘": format_number(open_price),
+        "最高": format_number(high_price),
+        "最低": format_number(low_price),
+        "收盘": format_number(close_price),
+        "涨跌额": _format_nullable(kline.get("chg"), lambda v: format_number(float(v))),
+        "涨跌幅": f"{'+' if percent > 0 else ''}{percent:.2f}%",
+        "换手率": _format_nullable(
+            kline.get("turnoverrate"), lambda v: f"{float(v):.2f}%"
+        ),
+        "成交量": _format_nullable(kline.get("volume"), lambda v: format_large_number(int(v))),
+        "成交额": _format_nullable(kline.get("amount"), lambda v: format_large_number(float(v))),
+        "振幅": f"{amplitude:.2f}%",
+        "盘后成交量": _format_nullable(
+            kline.get("volume_post"), lambda v: format_large_number(int(v))
+        ),
+        "盘后成交额": _format_nullable(
+            kline.get("amount_post"), lambda v: format_large_number(float(v))
+        ),
+        "市盈率(PE)": _format_nullable(kline.get("pe"), lambda v: f"{float(v):.4f}"),
+        "市净率(PB)": _format_nullable(kline.get("pb"), lambda v: f"{float(v):.4f}"),
+        "市销率(PS)": _format_nullable(kline.get("ps"), lambda v: f"{float(v):.4f}"),
+        "市现率(PCF)": _format_nullable(kline.get("pcf"), lambda v: f"{float(v):.4f}"),
+        "总市值": _format_nullable(
+            kline.get("market_capital"), lambda v: format_large_number(float(v))
+        ),
+        "余额": _format_nullable(kline.get("balance"), lambda v: format_large_number(float(v))),
+        "陆股通持股量": _format_nullable(
+            kline.get("hold_volume_cn"), lambda v: format_large_number(int(v))
+        ),
+        "陆股通持股比例": _format_nullable(
+            kline.get("hold_ratio_cn"), lambda v: f"{float(v):.2f}%"
+        ),
+        "陆股通净买入": _format_nullable(
+            kline.get("net_volume_cn"), lambda v: format_large_number(int(v))
+        ),
+        "港股通持股量": _format_nullable(
+            kline.get("hold_volume_hk"), lambda v: format_large_number(int(v))
+        ),
+        "港股通持股比例": _format_nullable(
+            kline.get("hold_ratio_hk"), lambda v: f"{float(v):.2f}%"
+        ),
+        "港股通净买入": _format_nullable(
+            kline.get("net_volume_hk"), lambda v: format_large_number(int(v))
+        ),
+    }
+    return row
+
+
+KLINE_PRICE_COLUMNS = [
+    "日期",
+    "K线状态",
+    "开盘",
+    "最高",
+    "最低",
+    "收盘",
+    "涨跌额",
+    "涨跌幅",
+    "换手率",
+    "成交量",
+    "成交额",
+    "振幅",
+]
+
+KLINE_VALUATION_COLUMNS = [
+    "日期",
+    "市盈率(PE)",
+    "市净率(PB)",
+    "市销率(PS)",
+    "市现率(PCF)",
+    "总市值",
+    "盘后成交量",
+    "盘后成交额",
+    "余额",
+    "陆股通持股量",
+    "陆股通持股比例",
+    "陆股通净买入",
+    "港股通持股量",
+    "港股通持股比例",
+    "港股通净买入",
+]
+
+TECH_PRICE_COLUMNS = [
+    "交易日期",
+    "收盘价",
+    "开盘价",
+    "最高价",
+    "最低价",
+    "移动平均线价格（MA5 MA10 MA20，单位：元）",
+    "5日平均成交金额",
+    "支撑位",
+    "压力位",
+]
+
+TECH_MACD_COLUMNS = ["交易日期", "DIF", "DEA", "MACD", "MACD信号"]
+TECH_KDJ_COLUMNS = ["交易日期", "K", "D", "J", "KDJ信号"]
+TECH_RSI_COLUMNS = ["交易日期", "RSI1(6日)", "RSI2(12日)", "RSI3(24日)", "RSI信号"]
+TECH_BOLL_COLUMNS = ["交易日期", "BOLL上轨", "BOLL中轨", "BOLL下轨", "BOLL信号"]
+TECH_BIAS_WR_COLUMNS = [
+    "交易日期",
+    "BIAS1(6日)",
+    "BIAS2(12日)",
+    "BIAS3(24日)",
+    "BIAS信号",
+    "WR1(10日)",
+    "WR2(20日)",
+    "WR信号",
+]
+TECH_MARKET_COLUMNS = [
+    "交易日期",
+    "近60日区间涨跌幅",
+    "近60日区间振幅",
+    "近60日沪深300涨跌幅",
+    "近60日区间换手率",
+]
+
+
+def format_kline_markdown(
+    stock_code: str,
+    formatted_data: List[Dict[str, str]],
+    frequency: str,
+) -> str:
+    """将 K 线拆分为多张窄表，便于 Agent 端 Markdown 渲染。"""
+    sections = [
+        (
+            "价格与成交",
+            format_list_to_markdown_table(
+                pick_columns(formatted_data, KLINE_PRICE_COLUMNS)
+            ),
+        ),
+        (
+            "估值与资金",
+            format_list_to_markdown_table(
+                pick_columns(formatted_data, KLINE_VALUATION_COLUMNS)
+            ),
+        ),
+    ]
+    return format_markdown_report(
+        f"{stock_code} K线数据",
+        sections=sections,
+        footnote=f"💡 显示 {len(formatted_data)} 条K线数据，频率: {frequency}",
+    )
+
+
+def format_technical_indicators_markdown(
+    stock_code: str,
+    stock_name: str,
+    formatted_data: List[Dict[str, str]],
+) -> str:
+    """将技术指标拆分为多张子表，长文本单独作为脚注。"""
+    sections = [
+        (
+            "价格与均线",
+            format_list_to_markdown_table(
+                pick_columns(formatted_data, TECH_PRICE_COLUMNS)
+            ),
+        ),
+        (
+            "MACD",
+            format_list_to_markdown_table(pick_columns(formatted_data, TECH_MACD_COLUMNS)),
+        ),
+        (
+            "KDJ",
+            format_list_to_markdown_table(pick_columns(formatted_data, TECH_KDJ_COLUMNS)),
+        ),
+        (
+            "RSI",
+            format_list_to_markdown_table(pick_columns(formatted_data, TECH_RSI_COLUMNS)),
+        ),
+        (
+            "BOLL",
+            format_list_to_markdown_table(pick_columns(formatted_data, TECH_BOLL_COLUMNS)),
+        ),
+        (
+            "BIAS / WR",
+            format_list_to_markdown_table(
+                pick_columns(formatted_data, TECH_BIAS_WR_COLUMNS)
+            ),
+        ),
+        (
+            "市场对比",
+            format_list_to_markdown_table(
+                pick_columns(formatted_data, TECH_MARKET_COLUMNS)
+            ),
+        ),
+    ]
+
+    footnote_parts = [f"💡 显示 {len(formatted_data)} 条技术指标数据"]
+    if formatted_data:
+        latest = formatted_data[-1]
+        explain = latest.get("趋势量能分析", "").strip()
+        if explain:
+            footnote_parts.append(f"\n\n分析解读：{explain}")
+
+    return format_markdown_report(
+        f"{stock_name}({stock_code}) 技术指标数据",
+        sections=sections,
+        footnote="\n".join(footnote_parts),
+    )
+
+
+def format_kline_data(klines: List[Dict[str, Any]]) -> List[Dict[str, str]]:
     """
-    解析K线原始数据字符串
+    格式化雪球 K 线数据列表，用于 Markdown 表格展示
 
     Args:
-        klines: K线原始数据字符串列表
+        klines: 雪球 API 返回的 K 线字典列表（column 字段名 -> 值）
 
     Returns:
-        解析后的K线数据字典列表
+        中文列名的展示字典列表
     """
-    result = []
-    for kline in klines:
-        fields = kline.split(",")
-        if len(fields) >= 11:
-            result.append({
-                "date": fields[0],           # 日期
-                "open": float(fields[1]),    # 开盘
-                "close": float(fields[2]),   # 收盘
-                "high": float(fields[3]),    # 最高
-                "low": float(fields[4]),     # 最低
-                "volume": int(fields[5]),    # 成交量
-                "amount": float(fields[6]),  # 成交额
-                "amplitude": float(fields[7]), # 振幅
-                "change_percent": float(fields[8]), # 涨跌幅
-                "change_amount": float(fields[9]),  # 涨跌额
-                "turnover_rate": float(fields[10])  # 换手率
-            })
-    return result
+    return [format_kline_row(kline) for kline in klines]
 
 
 def format_technical_indicators_data(technical_data: List[Dict]) -> List[Dict]:
@@ -66,8 +342,6 @@ def format_technical_indicators_data(technical_data: List[Dict]) -> List[Dict]:
             '开盘价': format_number(item.get('OPEN', 0)),
             '最高价': format_number(item.get('HIGH', 0)),
             '最低价': format_number(item.get('LOW', 0)),
-            '60日K线数据（日期 开盘 最高 最低 收盘）': item.get('DAILY_TRADE_60TD', ''),
-
             '移动平均线价格（MA5 MA10 MA20，单位：元）': item.get('AVG_PRICE', ''),
             '5日平均成交金额': f"{format_large_number(item.get('AVG_AMOUNT_5DAYS', 0))} 元" if item.get(
                 'AVG_AMOUNT_5DAYS') else '',
@@ -232,49 +506,8 @@ def register_kline_tools(app: FastMCP, data_source: FinancialDataInterface):
             if not raw_klines:
                 return f"未找到股票代码 '{stock_code}' 在 {start_date} 至 {end_date} 的K线数据"
 
-            # 解析原始数据
-            kline_data = parse_kline_data(raw_klines)
-
-            # 格式化数据
-            formatted_data = []
-            for k in kline_data:
-                open_price = k.get('open', 0)
-                close_price = k.get('close', 0)
-                high_price = k.get('high', 0)
-                low_price = k.get('low', 0)
-                volume = k.get('volume', 0)
-                amount = k.get('amount', 0)
-                change_pct = k.get('change_percent', 0)
-                amplitude = k.get('amplitude', 0)
-                change_amount = k.get('change_amount', 0)
-                turnover_rate = k.get('turnover_rate', 0)
-
-                # 计算 K 线状态
-                if close_price > open_price:
-                    status = "上涨（阳线）"
-                elif close_price < open_price:
-                    status = "下跌（阴线）"
-                else:
-                    status = "平盘（十字星）"
-
-                formatted_data.append({
-                    '日期': k.get('date', ''),
-                    'K线状态': status,
-                    '开盘': format_number(open_price),
-                    '收盘': format_number(close_price),
-                    '最高': format_number(high_price),
-                    '最低': format_number(low_price),
-                    '涨跌幅': f"{'+' if change_pct > 0 else ''}{change_pct:.2f}%",
-                    '成交量': format_large_number(volume),
-                    '成交额': format_large_number(amount),
-                    '振幅': f"{amplitude:.2f}%",
-                    '涨跌额': format_number(change_amount),
-                    '换手率': f"{turnover_rate:.2f}%"
-                })
-
-            table = format_list_to_markdown_table(formatted_data)
-            note = f"\n\n💡 显示 {len(formatted_data)} 条K线数据，频率: {frequency}"
-            return f"## {stock_code} K线数据\n\n{table}{note}"
+            formatted_data = format_kline_data(raw_klines)
+            return format_kline_markdown(stock_code, formatted_data, frequency)
 
         except Exception as e:
             logger.error(f"获取K线时出错: {e}")
@@ -310,15 +543,14 @@ def register_kline_tools(app: FastMCP, data_source: FinancialDataInterface):
             
             # 格式化数据
             formatted_data = format_technical_indicators_data(raw_technical_data)
-            
-            # 生成Markdown表格
-            table = format_list_to_markdown_table(formatted_data)
-            note = f"\n\n💡 显示 {len(formatted_data)} 条技术指标数据"
-            
-            # 添加股票名称
-            stock_name = raw_technical_data[0].get('SECURITY_NAME_ABBR', '') if raw_technical_data else ''
-            
-            return f"## {stock_name}({stock_code}) 技术指标数据\n\n{table}{note}"
+            stock_name = (
+                raw_technical_data[0].get("SECURITY_NAME_ABBR", "")
+                if raw_technical_data
+                else ""
+            )
+            return format_technical_indicators_markdown(
+                stock_code, stock_name, formatted_data
+            )
 
         except Exception as e:
             logger.error(f"获取技术指标时出错: {e}")
@@ -351,9 +583,10 @@ def register_kline_tools(app: FastMCP, data_source: FinancialDataInterface):
             formatted_data = format_intraday_changes_data(raw_intraday_changes)
 
             # 生成Markdown表格
-            table = format_list_to_markdown_table(formatted_data)
-
-            return f"## {stock_code}分时图盘口异动数据\n\n{table}"
+            return format_markdown_report(
+                f"{stock_code} 分时图盘口异动数据",
+                table_data=formatted_data,
+            )
 
         except Exception as e:
             logger.error(f"获取分时图盘口异动时出错: {e}")

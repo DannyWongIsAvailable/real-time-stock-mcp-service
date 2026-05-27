@@ -8,7 +8,7 @@ import logging
 from mcp.server.fastmcp import FastMCP
 
 from stock_mcp.data_source_interface import FinancialDataInterface
-from stock_mcp.utils.markdown_formatter import format_list_to_markdown_table
+from stock_mcp.utils.markdown_formatter import format_list_to_markdown_table, format_markdown_report
 
 logger = logging.getLogger(__name__)
 
@@ -54,15 +54,16 @@ def register_smart_review_tools(app: FastMCP, data_source: FinancialDataInterfac
                 }
                 table_data.append(formatted_item)
             
-            # 获取股票代码作为名称的默认值
             security_name = stock_code
-            
-            # 格式化为Markdown表格
-            result = f"**{security_name}市场参与意愿**\n\n"
-            result += format_list_to_markdown_table(table_data)
-            result += "\n\n说明："
-            result += "\n- 参与意愿由根据大数据对投资者入场意愿量化统计得出，参与意愿上升代表入场意愿增强"
-            return result
+
+            return format_markdown_report(
+                f"{security_name} 市场参与意愿",
+                table_data=table_data,
+                footnote=(
+                    "说明：参与意愿由大数据对投资者入场意愿量化统计得出，"
+                    "参与意愿上升代表入场意愿增强"
+                ),
+            )
         except Exception as e:
             logger.error(f"获取市场参与意愿数据失败: {e}")
             return f"获取市场参与意愿数据失败: {e}"
@@ -104,14 +105,20 @@ def register_smart_review_tools(app: FastMCP, data_source: FinancialDataInterfac
                 }
                 table_data.append(formatted_item)
             
-            # 格式化为Markdown表格
-            result = f"**{control_data[-1]["SECURITY_NAME_ABBR"]}股票主力控盘数据**\n\n"
-            result += format_list_to_markdown_table(table_data)
-            result += "\n点评："
-            result += f"\n机构参与度为{control_data[-1]['ORG_PARTICIPATE'] * 100:.2f}%，属于{control_data[-1]['PARTICIPATE_TYPE_CN']}"
-            result += f"\n最近1日主力成本{control_data[-1]['PRIME_COST']:.2f}元，最近20日主力成本{control_data[-1]['PRIME_COST_20DAYS']:.2f}元"
-            
-            return result
+            latest = control_data[-1]
+            stock_name = latest["SECURITY_NAME_ABBR"]
+            footnote = (
+                f"点评：机构参与度为{latest['ORG_PARTICIPATE'] * 100:.2f}%，"
+                f"属于{latest['PARTICIPATE_TYPE_CN']}；"
+                f"最近1日主力成本{latest['PRIME_COST']:.2f}元，"
+                f"最近20日主力成本{latest['PRIME_COST_20DAYS']:.2f}元"
+            )
+
+            return format_markdown_report(
+                f"{stock_name} 主力控盘数据",
+                table_data=table_data,
+                footnote=footnote,
+            )
         except Exception as e:
             logger.error(f"获取主力控盘数据失败: {e}")
             return f"获取主力控盘数据失败: {e}"
@@ -131,20 +138,25 @@ def register_smart_review_tools(app: FastMCP, data_source: FinancialDataInterfac
             score_data = data_source.get_smart_score(stock_code)
 
 
-            # 直接格式化为逐行显示
-            result = f"**股票智能评分**\n\n"
-            result += f"股票代码：{score_data.get('SECUCODE', stock_code)}\n"
-            result += f"股票名称：{score_data.get('SECURITY_NAME_ABBR', stock_code)}\n"
-            result += f"评分：{score_data.get('TOTAL_SCORE', 0):.2f}\n"
-            result += f"评分变化：{score_data.get('TOTAL_SCORE_CHANGE', 0):+.2f}\n"
-            result += f"次日上涨概率：{score_data.get('RISE_1_PROBABILITY', 0):.2f}%\n"
-            result += f"次日平均涨跌：{score_data.get('AVERAGE_1_INCREASE', 0):.2f}%\n"
-            result += f"五日上涨概率：{score_data.get('RISE_5_PROBABILITY', 0):.2f}%\n"
-            result += f"五日平均涨跌：{score_data.get('AVERAGE_5_INCREASE', 0):.2f}%\n"
-            result += f"分析解读：{score_data.get('WORDS_EXPLAIN', '')}\n"
-            result += f"分析时间：{score_data.get('DIAGNOSE_TIME', '')}"
-            
-            return result
+            table_data = [
+                {"字段": "股票代码", "值": score_data.get("SECUCODE", stock_code)},
+                {"字段": "股票名称", "值": score_data.get("SECURITY_NAME_ABBR", stock_code)},
+                {"字段": "评分", "值": f"{score_data.get('TOTAL_SCORE', 0):.2f}"},
+                {"字段": "评分变化", "值": f"{score_data.get('TOTAL_SCORE_CHANGE', 0):+.2f}"},
+                {"字段": "次日上涨概率", "值": f"{score_data.get('RISE_1_PROBABILITY', 0):.2f}%"},
+                {"字段": "次日平均涨跌", "值": f"{score_data.get('AVERAGE_1_INCREASE', 0):.2f}%"},
+                {"字段": "五日上涨概率", "值": f"{score_data.get('RISE_5_PROBABILITY', 0):.2f}%"},
+                {"字段": "五日平均涨跌", "值": f"{score_data.get('AVERAGE_5_INCREASE', 0):.2f}%"},
+                {"字段": "分析时间", "值": score_data.get("DIAGNOSE_TIME", "")},
+            ]
+            explain = (score_data.get("WORDS_EXPLAIN") or "").strip()
+            footnote = f"分析解读：{explain}" if explain else None
+
+            return format_markdown_report(
+                f"{score_data.get('SECURITY_NAME_ABBR', stock_code)} 智能评分",
+                table_data=table_data,
+                footnote=footnote,
+            )
         except Exception as e:
             logger.error(f"获取股票智能评分数据失败: {e}")
             return f"获取股票智能评分数据失败 {e}"
@@ -167,36 +179,119 @@ def register_smart_review_tools(app: FastMCP, data_source: FinancialDataInterfac
             if not rank_data:
                 return "未找到相关评分排名数据"
 
-            # 格式化为Markdown表格
-            result = f"**个股智能评分排名详情**\n\n"
-            result += f"股票代码：{rank_data.get('SECUCODE', stock_code)}\n"
-            result += f"股票名称：{rank_data.get('SECURITY_NAME_ABBR', '')}\n"
-            result += f"所属板块：{rank_data.get('BOARD_NAME', '')}({rank_data.get('BOARD_CODE', '')})\n\n"
-            result += f"交易日期：{rank_data.get('TRADE_DATE', '').split(' ')[0]}\n"
-            
-            # 综合评分部分
-            result += f"**综合评分**\n"
-            result += f"综合评分：{rank_data.get('COMPRE_SCORE', 0):.2f}分\n"
-            result += f"当日涨跌幅：{rank_data.get('CHANGE_RATE', 0):+.2f}%\n\n"
-            
-            # 行业内排名部分
-            result += f"**行业内排名**\n"
-            result += f"行业排名：第{rank_data.get('INDUSTRY_RANK', 0)}名\n"
-            result += f"行业最高分：{rank_data.get('INDUSTRY_SCORE_HIGH', 0):.2f}分\n"
-            result += f"行业平均分：{rank_data.get('INDUSTRY_SCORE_AVG', 0):.2f}分\n"
-            result += f"行业最低分：{rank_data.get('INDUSTRY_SCORE_LOW', 0):.2f}分\n"
-            result += f"{rank_data.get('BOARD_NAME', '')}行业共{rank_data.get('INDUSTRY_STOCK_NUM', 0)}只股票，已评{rank_data.get('EVALUATE_INDUSTRY_NUM', 0)}只\n\n"
-            
-            # 全市场排名部分
-            result += f"**全市场排名**\n"
-            result += f"市场排名：第{rank_data.get('MARKET_RANK', 0)}名\n"
-            result += f"打败了市场{rank_data.get('STOCK_RANK_RATIO', 0):.2f}%的股票\n"
-            result += f"市场最高分：{rank_data.get('MARKET_SCORE_HIGH', 0):.2f}分\n"
-            result += f"市场平均分：{rank_data.get('MARKET_SCORE_AVG', 0):.2f}分\n"
-            result += f"市场最低分：{rank_data.get('MARKET_SCORE_LOW', 0):.2f}分\n"
-            result += f"沪深市场共{rank_data.get('MARKET_STOCK_NUM', 0)}只股票，已评{rank_data.get('EVALUATE_MARKET_NUM', 0)}只"
-            
-            return result
+            sections = [
+                (
+                    "基本信息",
+                    format_list_to_markdown_table(
+                        [
+                            {
+                                "字段": "股票代码",
+                                "值": rank_data.get("SECUCODE", stock_code),
+                            },
+                            {
+                                "字段": "股票名称",
+                                "值": rank_data.get("SECURITY_NAME_ABBR", ""),
+                            },
+                            {
+                                "字段": "所属板块",
+                                "值": (
+                                    f"{rank_data.get('BOARD_NAME', '')}"
+                                    f"({rank_data.get('BOARD_CODE', '')})"
+                                ),
+                            },
+                            {
+                                "字段": "交易日期",
+                                "值": rank_data.get("TRADE_DATE", "").split(" ")[0],
+                            },
+                        ]
+                    ),
+                ),
+                (
+                    "综合评分",
+                    format_list_to_markdown_table(
+                        [
+                            {
+                                "字段": "综合评分",
+                                "值": f"{rank_data.get('COMPRE_SCORE', 0):.2f}分",
+                            },
+                            {
+                                "字段": "当日涨跌幅",
+                                "值": f"{rank_data.get('CHANGE_RATE', 0):+.2f}%",
+                            },
+                        ]
+                    ),
+                ),
+                (
+                    "行业内排名",
+                    format_list_to_markdown_table(
+                        [
+                            {
+                                "字段": "行业排名",
+                                "值": f"第{rank_data.get('INDUSTRY_RANK', 0)}名",
+                            },
+                            {
+                                "字段": "行业最高分",
+                                "值": f"{rank_data.get('INDUSTRY_SCORE_HIGH', 0):.2f}分",
+                            },
+                            {
+                                "字段": "行业平均分",
+                                "值": f"{rank_data.get('INDUSTRY_SCORE_AVG', 0):.2f}分",
+                            },
+                            {
+                                "字段": "行业最低分",
+                                "值": f"{rank_data.get('INDUSTRY_SCORE_LOW', 0):.2f}分",
+                            },
+                            {
+                                "字段": "行业统计",
+                                "值": (
+                                    f"{rank_data.get('BOARD_NAME', '')}行业共"
+                                    f"{rank_data.get('INDUSTRY_STOCK_NUM', 0)}只股票，"
+                                    f"已评{rank_data.get('EVALUATE_INDUSTRY_NUM', 0)}只"
+                                ),
+                            },
+                        ]
+                    ),
+                ),
+                (
+                    "全市场排名",
+                    format_list_to_markdown_table(
+                        [
+                            {
+                                "字段": "市场排名",
+                                "值": f"第{rank_data.get('MARKET_RANK', 0)}名",
+                            },
+                            {
+                                "字段": "战胜比例",
+                                "值": f"打败了市场{rank_data.get('STOCK_RANK_RATIO', 0):.2f}%的股票",
+                            },
+                            {
+                                "字段": "市场最高分",
+                                "值": f"{rank_data.get('MARKET_SCORE_HIGH', 0):.2f}分",
+                            },
+                            {
+                                "字段": "市场平均分",
+                                "值": f"{rank_data.get('MARKET_SCORE_AVG', 0):.2f}分",
+                            },
+                            {
+                                "字段": "市场最低分",
+                                "值": f"{rank_data.get('MARKET_SCORE_LOW', 0):.2f}分",
+                            },
+                            {
+                                "字段": "市场统计",
+                                "值": (
+                                    f"沪深市场共{rank_data.get('MARKET_STOCK_NUM', 0)}只股票，"
+                                    f"已评{rank_data.get('EVALUATE_MARKET_NUM', 0)}只"
+                                ),
+                            },
+                        ]
+                    ),
+                ),
+            ]
+
+            return format_markdown_report(
+                f"{rank_data.get('SECURITY_NAME_ABBR', stock_code)} 智能评分排名",
+                sections=sections,
+            )
         except Exception as e:
             logger.error(f"获取个股智能评分排名数据失败: {e}")
             return f"获取个股智能评分排名数据失败: {e}"
@@ -241,15 +336,16 @@ def register_smart_review_tools(app: FastMCP, data_source: FinancialDataInterfac
                 }
                 table_data.append(formatted_stock)
             
-            # 格式化为Markdown表格
-            result = "**全市场高评分个股排行榜**\n\n"
-            result += format_list_to_markdown_table(table_data)
-            result += f"\n\n全市场参与评分的股票数量：{evaluate_market_num}\n"
-            result += f"市场最高分：{market_score_high:.2f}分\n"
-            result += f"市场最低分：{market_score_low:.2f}分\n"
-            result += f"市场平均分：{market_score_avg:.2f}分\n"
-            
-            return result
+            return format_markdown_report(
+                "全市场高评分个股排行榜",
+                table_data=table_data,
+                footnote=(
+                    f"全市场参与评分的股票数量：{evaluate_market_num}；"
+                    f"市场最高分：{market_score_high:.2f}分；"
+                    f"市场最低分：{market_score_low:.2f}分；"
+                    f"市场平均分：{market_score_avg:.2f}分"
+                ),
+            )
         except Exception as e:
             logger.error(f"获取全市场高评分个股数据失败: {e}")
             return f"获取全市场高评分个股数据失败: {e}"
