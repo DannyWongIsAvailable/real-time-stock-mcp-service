@@ -1,6 +1,6 @@
 [project]
 name = "real-time-stock-mcp-service"
-version = "2.0.0"
+version = "2.1.0"
 description = "一个获取实时股票数据服务和分析的MCP服务器"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -18,6 +18,10 @@ real-time-stock-mcp-service = "stock_mcp.app:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
+default = true
 
 # 告诉 hatchling 包在 src/ 下，且包名是 stock_mcp
 [tool.hatch.build.targets.wheel]

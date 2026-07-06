@@ -222,6 +222,22 @@ TECH_MARKET_COLUMNS = [
 ]
 
 
+EASTMONEY_KLINE_COLUMNS = [
+    "日期",
+    "K线状态",
+    "开盘",
+    "最高",
+    "最低",
+    "收盘",
+    "涨跌额",
+    "涨跌幅",
+    "振幅",
+    "换手率",
+    "成交量",
+    "成交额",
+]
+
+
 def format_kline_markdown(
     stock_code: str,
     formatted_data: List[Dict[str, str]],
@@ -245,6 +261,72 @@ def format_kline_markdown(
     return format_markdown_report(
         f"{stock_code} K线数据",
         sections=sections,
+        footnote=f"💡 显示 {len(formatted_data)} 条K线数据，频率: {frequency}",
+    )
+
+
+def parse_eastmoney_klines(klines: List[str]) -> List[Dict[str, Any]]:
+    """解析东方财富 K 线原始字符串列表为结构化字典。"""
+    result = []
+    for kline in klines:
+        fields = kline.split(",")
+        if len(fields) >= 11:
+            result.append({
+                "date": fields[0],
+                "open": float(fields[1]),
+                "close": float(fields[2]),
+                "high": float(fields[3]),
+                "low": float(fields[4]),
+                "volume": int(fields[5]),
+                "amount": float(fields[6]),
+                "amplitude": float(fields[7]),
+                "change_percent": float(fields[8]),
+                "change_amount": float(fields[9]),
+                "turnover_rate": float(fields[10]),
+            })
+    return result
+
+
+def format_eastmoney_kline_row(kline: Dict[str, Any]) -> Dict[str, str]:
+    """将解析后的东方财富 K 线字典格式化为 Markdown 表格行（中文列名）"""
+    open_price = kline["open"]
+    close_price = kline["close"]
+    high_price = kline["high"]
+    low_price = kline["low"]
+
+    if close_price > open_price:
+        status = "上涨（阳线）"
+    elif close_price < open_price:
+        status = "下跌（阴线）"
+    else:
+        status = "平盘（十字星）"
+
+    percent = kline["change_percent"]
+    return {
+        "日期": kline["date"],
+        "K线状态": status,
+        "开盘": format_number(open_price),
+        "最高": format_number(high_price),
+        "最低": format_number(low_price),
+        "收盘": format_number(close_price),
+        "涨跌额": format_number(kline["change_amount"]),
+        "涨跌幅": f"{'+' if percent > 0 else ''}{percent:.2f}%",
+        "振幅": f"{kline['amplitude']:.2f}%",
+        "换手率": f"{kline['turnover_rate']:.2f}%",
+        "成交量": format_large_number(kline["volume"]),
+        "成交额": format_large_number(kline["amount"]),
+    }
+
+
+def format_eastmoney_kline_markdown(
+    stock_code: str,
+    formatted_data: List[Dict[str, str]],
+    frequency: str,
+) -> str:
+    """将东方财富 K 线格式化为 Markdown 表格。"""
+    return format_markdown_report(
+        f"{stock_code} K线数据",
+        table_data=pick_columns(formatted_data, EASTMONEY_KLINE_COLUMNS),
         footnote=f"💡 显示 {len(formatted_data)} 条K线数据，频率: {frequency}",
     )
 
@@ -317,6 +399,20 @@ def format_kline_data(klines: List[Dict[str, Any]]) -> List[Dict[str, str]]:
         中文列名的展示字典列表
     """
     return [format_kline_row(kline) for kline in klines]
+
+
+def format_eastmoney_kline_data(klines: List[str]) -> List[Dict[str, str]]:
+    """
+    解析并格式化东方财富 K 线数据列表，用于 Markdown 表格展示
+
+    Args:
+        klines: 东方财富 API 返回的 K 线字符串列表
+
+    Returns:
+        中文列名的展示字典列表
+    """
+    parsed = parse_eastmoney_klines(klines)
+    return [format_eastmoney_kline_row(kline) for kline in parsed]
 
 
 def format_technical_indicators_data(technical_data: List[Dict]) -> List[Dict]:
@@ -475,14 +571,14 @@ def register_kline_tools(app: FastMCP, data_source: FinancialDataInterface):
     """
 
     @app.tool()
-    def get_kline(
+    def get_xueqiu_klines(
         stock_code: str,
         start_date: str,
         end_date: str,
         frequency: str = "d"
     ) -> str:
         """
-        获取指定股票在指定日期范围内的K线数据，支持A股，B股，H股，大盘
+        获取指定股票在指定日期范围内的 K 线数据（雪球 API），支持 A 股、B 股、H 股、大盘。
 
         Args:
             stock_code: 股票代码，要在数字后加上交易所代码，格式如300750.SZ
@@ -491,27 +587,78 @@ def register_kline_tools(app: FastMCP, data_source: FinancialDataInterface):
             frequency: K线周期，可选值: "d"(日), "w"(周), "m"(月), "5"(5分钟), "15"(15分钟), "30"(30分钟), "60"(60分钟)
 
         Returns:
-            K线数据的Markdown表格
+            雪球 K 线数据的 Markdown 表格，含估值、北向/南向资金等扩展字段
 
         Examples:
-            - get_kline("300750.SZ", "2024-01-01", "2024-01-31")
-            - get_kline("300750.SZ", "2024-10-01", "2024-10-31", "w")
+            - get_xueqiu_klines("300750.SZ", "2024-01-01", "2024-01-31")
+            - get_xueqiu_klines("300750.SZ", "2024-10-01", "2024-10-31", "w")
         """
         try:
-            logger.info(f"获取K线: {stock_code}, {start_date} 至 {end_date}, 频率: {frequency}")
+            logger.info(
+                f"获取雪球K线: {stock_code}, {start_date} 至 {end_date}, 频率: {frequency}"
+            )
 
-            # 从数据源获取原始数据
-            raw_klines = data_source.get_historical_k_data(stock_code, start_date, end_date, frequency)
+            raw_klines = data_source.get_xueqiu_klines(
+                stock_code, start_date, end_date, frequency
+            )
 
             if not raw_klines:
-                return f"未找到股票代码 '{stock_code}' 在 {start_date} 至 {end_date} 的K线数据"
+                return (
+                    f"未找到股票代码 '{stock_code}' 在 {start_date} 至 {end_date} "
+                    f"的雪球K线数据"
+                )
 
             formatted_data = format_kline_data(raw_klines)
             return format_kline_markdown(stock_code, formatted_data, frequency)
 
         except Exception as e:
-            logger.error(f"获取K线时出错: {e}")
-            return f"获取K线失败: {str(e)}"
+            logger.error(f"获取雪球K线时出错: {e}")
+            return f"获取雪球K线失败: {str(e)}"
+
+    @app.tool()
+    def get_eastmoney_klines(
+        stock_code: str,
+        start_date: str,
+        end_date: str,
+        frequency: str = "d"
+    ) -> str:
+        """
+        获取指定股票在指定日期范围内的 K 线数据（东方财富 API），支持 A 股、B 股、H 股、大盘。
+
+        Args:
+            stock_code: 股票代码，要在数字后加上交易所代码，格式如300750.SZ
+            start_date: 开始日期 (YYYY-MM-DD格式)
+            end_date: 结束日期 (YYYY-MM-DD格式)
+            frequency: K线周期，可选值: "d"(日), "w"(周), "m"(月), "5"(5分钟), "15"(15分钟), "30"(30分钟), "60"(60分钟)
+
+        Returns:
+            东方财富 K 线数据的 Markdown 表格
+
+        Examples:
+            - get_eastmoney_klines("300750.SZ", "2024-01-01", "2024-01-31")
+            - get_eastmoney_klines("300750.SZ", "2024-10-01", "2024-10-31", "w")
+        """
+        try:
+            logger.info(
+                f"获取东方财富K线: {stock_code}, {start_date} 至 {end_date}, 频率: {frequency}"
+            )
+
+            raw_klines = data_source.get_eastmoney_klines(
+                stock_code, start_date, end_date, frequency
+            )
+
+            if not raw_klines:
+                return (
+                    f"未找到股票代码 '{stock_code}' 在 {start_date} 至 {end_date} "
+                    f"的东方财富K线数据"
+                )
+
+            formatted_data = format_eastmoney_kline_data(raw_klines)
+            return format_eastmoney_kline_markdown(stock_code, formatted_data, frequency)
+
+        except Exception as e:
+            logger.error(f"获取东方财富K线时出错: {e}")
+            return f"获取东方财富K线失败: {str(e)}"
 
     @app.tool()
     def get_technical_indicators(

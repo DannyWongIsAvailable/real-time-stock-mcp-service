@@ -77,13 +77,12 @@ class WebCrawlerDataSource(FinancialDataInterface):
         self.market_spider = None
         self.smart_review_crawler = None
 
-    def get_historical_k_data(
-        self,
-        stock_code: str,
+    @staticmethod
+    def _parse_kline_params(
         start_date: str,
         end_date: str,
-        frequency: str = "d",
-    ) -> List[Dict[str, Any]]:
+        frequency: str,
+    ) -> tuple[str, str, int]:
         beg = start_date.replace("-", "")
         end = end_date.replace("-", "")
         frequency_map = {
@@ -93,15 +92,41 @@ class WebCrawlerDataSource(FinancialDataInterface):
             "60": 60,
             "d": 101,
             "w": 102,
-            "m": 103
+            "m": 103,
         }
         klt = frequency_map.get(frequency, 101)
-        return self.kline_spider.get_klines(
+        return beg, end, klt
+
+    def get_xueqiu_klines(
+        self,
+        stock_code: str,
+        start_date: str,
+        end_date: str,
+        frequency: str = "d",
+    ) -> List[Dict[str, Any]]:
+        beg, end, klt = self._parse_kline_params(start_date, end_date, frequency)
+        return self.kline_spider.get_xueqiu_klines(
             stock_code=stock_code,
             beg=beg,
             end=end,
             klt=klt,
-            fqt=1
+            fqt=1,
+        )
+
+    def get_eastmoney_klines(
+        self,
+        stock_code: str,
+        start_date: str,
+        end_date: str,
+        frequency: str = "d",
+    ) -> List[str]:
+        beg, end, klt = self._parse_kline_params(start_date, end_date, frequency)
+        return self.kline_spider.get_eastmoney_klines(
+            stock_code=stock_code,
+            beg=beg,
+            end=end,
+            klt=klt,
+            fqt=1,
         )
 
     def get_stock_search(
@@ -120,8 +145,11 @@ class WebCrawlerDataSource(FinancialDataInterface):
     def get_last_trading_day(self) -> Optional[Dict]:
         return self.searcher.last_trading_day()
 
-    def get_real_time_data(self, symbol: str) -> Dict[str, Any]:
-        return self.real_time_spider.get_real_time_data(symbol)
+    def get_xueqiu_real_time_data(self, symbol: str) -> Dict[str, Any]:
+        return self.real_time_spider.get_xueqiu_real_time_data(symbol)
+
+    def get_eastmoney_real_time_data(self, symbol: str) -> Dict[str, Any]:
+        return self.real_time_spider.get_eastmoney_real_time_data(symbol)
 
     def get_main_business(self, stock_code: str, report_date: Optional[str] = None) -> Optional[List[Dict[Any, Any]]]:
         return self.fundamental_crawler.get_main_business(stock_code, report_date)

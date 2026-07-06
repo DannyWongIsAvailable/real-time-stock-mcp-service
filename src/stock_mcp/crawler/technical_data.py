@@ -1,4 +1,4 @@
-from stock_mcp.crawler.base_crawler import EastMoneyBaseSpider
+from stock_mcp.crawler.base_crawler import MultiSourceBaseSpider
 
 import requests
 from datetime import datetime, timezone, timedelta
@@ -6,16 +6,19 @@ from typing import List, Optional, Dict, Any
 
 _CN_TZ = timezone(timedelta(hours=8))
 
-class KlineSpider(EastMoneyBaseSpider):
+class KlineSpider(MultiSourceBaseSpider):
     """
     K线数据爬虫
 
     使用示例：
         spider = KlineSpider()
-        klines = spider.get_klines("300750", beg="20251101", end="20251130")
+        xueqiu_klines = spider.get_xueqiu_klines("300750", beg="20251101", end="20251130")
+        eastmoney_klines = spider.get_eastmoney_klines("300750", beg="20251101", end="20251130")
+
     """
 
-    BASE_URL = "https://stock.xueqiu.com/v5/stock/chart/kline.json"
+    XUEQIU_KLINE_URL = "https://stock.xueqiu.com/v5/stock/chart/kline.json"
+    EASTMONEY_KLINE_URL = "https://push2his.eastmoney.com/api/qt/stock/kline/get"
     TECHNICAL_INDICATORS_URL = "https://datacenter-web.eastmoney.com/api/data/v1/get"
     PKYD_URL = "https://push2.eastmoney.com/api/qt/pkyd/get"  # 盘口异动API
     XUEQIU_INDICATOR = "kline,pe,pb,ps,pcf,market_capital,agt,ggt,balance"
@@ -39,22 +42,36 @@ class KlineSpider(EastMoneyBaseSpider):
             self,
             session: Optional[requests.Session] = None,
             timeout: int = 20,
+            *,
+            eastmoney_session: Optional[requests.Session] = None,
+            xueqiu_session: Optional[requests.Session] = None,
+            xueqiu_cookie: Optional[str] = None,
     ):
-        super().__init__(session, timeout)
-        self.headers["Referer"] = "https://quote.eastmoney.com/"
+        """
+        初始化 K 线爬虫。
+
+        为兼容旧调用，session 仍可传入，并仅作为东方财富 Session 使用；
+        雪球始终使用独立的 xueqiu_session、请求头和 CookieJar。
+        """
+        if session is not None and eastmoney_session is not None:
+            raise ValueError("session 与 eastmoney_session 不能同时传入")
+
+        super().__init__(
+            eastmoney_session=eastmoney_session or session,
+            xueqiu_session=xueqiu_session,
+            timeout=timeout,
+            xueqiu_cookie=xueqiu_cookie,
+        )
         self._xueqiu_session_ready = False
 
     def _ensure_xueqiu_session(self) -> None:
         if self._xueqiu_session_ready:
             return
-        self.session.get(
+        resp = self._xueqiu_get(
             "https://xueqiu.com/",
-            headers={
-                **self.headers,
-                "Referer": "https://xueqiu.com/",
-            },
-            timeout=self.timeout,
+            headers={"Referer": "https://xueqiu.com/"},
         )
+        resp.raise_for_status()
         self._xueqiu_session_ready = True
 
     @staticmethod
@@ -121,7 +138,7 @@ class KlineSpider(EastMoneyBaseSpider):
         items = data.get("item") or []
         return [dict(zip(columns, row)) for row in items]
 
-    def get_klines(
+    def get_xueqiu_klines(
             self,
             stock_code: str,
             beg: str = "19000101",
@@ -130,9 +147,9 @@ class KlineSpider(EastMoneyBaseSpider):
             fqt: int = FQT_FORWARD,
     ) -> List[Dict[str, Any]]:
         """
-        获取 K 线数据（雪球 API），支持 A 股日线/周线/月线及分钟线
+        获取 K 线数据（雪球 API），支持 A 股日线/周线/月线及分钟线。
 
-        :param stock_code: 股票代码，格式如 601127.SH
+        :param stock_code: 股票代码，格式如 601127.SH / 300750.SZ / 300750
         :param beg: 开始日期 YYYYMMDD
         :param end: 结束日期 YYYYMMDD
         :param klt: K线周期（使用 KLT_* 常量）
@@ -152,14 +169,10 @@ class KlineSpider(EastMoneyBaseSpider):
             "indicator": self.XUEQIU_INDICATOR,
         }
 
-        resp = self.session.get(
-            self.BASE_URL,
+        resp = self._xueqiu_get(
+            self.XUEQIU_KLINE_URL,
             params=params,
-            headers={
-                **self.headers,
-                "Referer": f"https://xueqiu.com/S/{symbol}",
-            },
-            timeout=self.timeout,
+            headers={"Referer": f"https://xueqiu.com/S/{symbol}"},
         )
         resp.raise_for_status()
         payload = resp.json()
@@ -185,6 +198,60 @@ class KlineSpider(EastMoneyBaseSpider):
         ]
         return filtered or rows
 
+    def get_eastmoney_klines(
+            self,
+            stock_code: str,
+            beg: str = "19000101",
+            end: str = "20500101",
+            klt: int = KLT_DAY,
+            fqt: int = FQT_FORWARD,
+    ) -> List[str]:
+        """
+        获取 K 线数据（东方财富 API），使用 quote.eastmoney.com Referer。
+
+        :param stock_code: 股票代码，格式如 601127.SH / 300750.SZ / 300750
+        :param beg: 开始日期 YYYYMMDD
+        :param end: 结束日期 YYYYMMDD
+        :param klt: K线周期（使用 KLT_* 常量）
+        :param fqt: 复权方式（使用 FQT_* 常量）
+        :return: 东方财富原始 K 线字符串列表，格式通常为
+                 日期,开盘,收盘,最高,最低,成交量,成交额,振幅,涨跌幅,涨跌额,换手率
+        """
+        secid = self.format_secid(stock_code)
+        end_anchor = end if end != "20500101" else datetime.now(_CN_TZ).strftime("%Y%m%d")
+
+        params = {
+            "secid": secid,
+            "ut": "fa5fd1943c7b386f172d6893dbfba10b",
+            "fields1": "f1,f2,f3,f4,f5,f6",
+            "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61",
+            "klt": str(klt),
+            "fqt": str(fqt),
+            "beg": beg,
+            "end": end_anchor,
+            "rtntype": "6",
+            "lmt": "1000000",
+            "_": str(self._timestamp_ms()),
+        }
+
+        resp = self._eastmoney_get(
+            self.EASTMONEY_KLINE_URL,
+            params=params,
+            headers={"Referer": "https://quote.eastmoney.com/"},
+        )
+        resp.raise_for_status()
+        payload = resp.json()
+
+        data = payload.get("data") if isinstance(payload, dict) else None
+        if not data:
+            raise RuntimeError(f"获取东方财富K线数据失败: {payload}")
+
+        klines = data.get("klines")
+        if klines is None:
+            raise RuntimeError(f"东方财富响应无 klines 字段: {payload}")
+
+        return klines
+
     def get_technical_indicators(
             self,
             stock_code: str,
@@ -203,13 +270,13 @@ class KlineSpider(EastMoneyBaseSpider):
 
         # 获取MACD等技术指标数据
         macd_data = self._get_macd_data(stock_code, page_size)
-        
+
         # 获取趋势量能等额外技术指标数据
         trend_data = self._get_trend_volume_data(stock_code, page_size)
-        
+
         # 合并数据
         merged_data = self._merge_technical_data(macd_data, trend_data)
-        
+
         return merged_data
 
     def get_intraday_changes(self, stock_code: str) -> List[str]:
@@ -321,13 +388,13 @@ class KlineSpider(EastMoneyBaseSpider):
         """
         # 创建以日期为键的字典以便匹配数据
         trend_dict = {item.get('TRADE_DATE', item.get('TRADEDATE')): item for item in trend_data}
-        
+
         merged_data = []
         for macd_item in macd_data:
             # 使用TRADEDATE作为主键
             trade_date = macd_item.get('TRADEDATE')
             merged_item = macd_item.copy()
-            
+
             # 如果在趋势数据中找到匹配的日期，则合并数据
             if trade_date in trend_dict:
                 trend_item = trend_dict[trade_date]
@@ -340,31 +407,44 @@ class KlineSpider(EastMoneyBaseSpider):
                     "SUPPORT_LEVEL": trend_item.get("SUPPORT_LEVEL"),
                     "WORDS_EXPLAIN": trend_item.get("WORDS_EXPLAIN")
                 })
-            
+
             merged_data.append(merged_item)
-        
+
         return merged_data
 
 # ==================== 使用示例 ====================
 if __name__ == "__main__":
 
-    # 获取 K 线
     spider = KlineSpider()
-    klines = spider.get_klines(
+
+    # 获取雪球 K 线（返回 dict 列表）
+    xueqiu_klines = spider.get_xueqiu_klines(
         "300750.SZ",
         beg="20251123",
         end="20251128",
         klt=KlineSpider.KLT_DAY,
         fqt=KlineSpider.FQT_FORWARD,
     )
-    print(f"K线数据 ({len(klines)} 条):")
-    for row in klines:
+    print(f"雪球K线数据 ({len(xueqiu_klines)} 条):")
+    for row in xueqiu_klines:
         print(f"  {row}")
-        
+
+    # 获取东方财富 K 线（返回原始字符串列表）
+    eastmoney_klines = spider.get_eastmoney_klines(
+        "300750.SZ",
+        beg="20251123",
+        end="20251128",
+        klt=KlineSpider.KLT_DAY,
+        fqt=KlineSpider.FQT_FORWARD,
+    )
+    print(f"\n东方财富K线数据 ({len(eastmoney_klines)} 条):")
+    for row in eastmoney_klines:
+        print(f"  {row}")
+
     # 获取技术指标
     try:
         technical_data = spider.get_technical_indicators("300750", 10)
-        print(f"\\n技术指标数据 ({len(technical_data)} 条):")
+        print(f"\n技术指标数据 ({len(technical_data)} 条):")
         for item in technical_data:
             print(f"  日期: {item['TRADEDATE']}, MACD: {item['MACD']}, RSI1: {item['RSI1']}")
     except Exception as e:

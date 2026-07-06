@@ -39,30 +39,58 @@ https://modelscope.cn/mcp/servers/DannyWong/real-time-stock-mcp
 {
   "mcpServers": {
     "stock-mcp": {
+      "command": "uvx",
       "args": [
         "real-time-stock-mcp-service"
       ],
-      "command": "uvx"
+      "env": {
+        "EASTMONEY_COOKIE": "从浏览器复制的东方财富 Cookie",
+        "XUEQIU_COOKIE": "从浏览器复制的雪球 Cookie"
+      }
     }
   }
 }
 ```
-  
-### 3 本地stdio模式(源代码运行)
-  
+
+### 3. 本地stdio模式(源代码运行)
+
 ```json
 {
   "mcpServers": {
     "stock-mcp": {
       "command": "path/to/python.exe",
       "args": ["-m", "stock_mcp"],
-      "cwd": "path/to/real-time-stock-mcp-service"
+      "cwd": "path/to/real-time-stock-mcp-service",
+      "env": {
+        "EASTMONEY_COOKIE": "从浏览器复制的东方财富 Cookie",
+        "XUEQIU_COOKIE": "从浏览器复制的雪球 Cookie"
+      }
     }
   }
 }
-
 ```
+
 > **注意：** 将路径替换为你的实际项目路径。
+
+### Cookie 环境变量
+
+部分接口（如东方财富 datacenter、雪球实时行情/K 线）需要浏览器 Cookie 才能正常访问。请在 MCP 配置的 `env` 字段中设置：
+
+| 环境变量 | 说明 |
+|----------|------|
+| `EASTMONEY_COOKIE` | 东方财富 Cookie，用于 datacenter、push2 等接口 |
+| `XUEQIU_COOKIE` | 雪球 Cookie，用于实时行情、K 线等接口 |
+| `LOG_LEVEL` | 可选，日志级别，默认 `INFO` |
+
+**获取 Cookie：**
+
+1. 浏览器登录 [eastmoney.com](https://www.eastmoney.com) 或 [xueqiu.com](https://xueqiu.com)
+2. 打开开发者工具（F12）→ Network → 任意请求 → Request Headers
+3. 复制 `Cookie` 字段的完整内容，填入 MCP 配置对应环境变量
+
+Cookie 会过期，若出现 403 或数据异常，重新复制并更新配置后重启 MCP 服务即可。
+
+> **安全提示：** 请勿将 Cookie 写入源码或提交到 Git，仅保存在本机 MCP 配置中。
 
 
 #### 视频教程参考：

@@ -631,7 +631,7 @@ wheels = [
 
 [[package]]
 name = "real-time-stock-mcp-service"
-version = "1.2.1"
+version = "2.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "mcp" },

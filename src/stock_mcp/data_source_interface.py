@@ -26,7 +26,7 @@ class FinancialDataInterface(ABC):
     """
 
     @abstractmethod
-    def get_historical_k_data(
+    def get_xueqiu_klines(
         self,
         stock_code: str,
         start_date: str,
@@ -34,10 +34,10 @@ class FinancialDataInterface(ABC):
         frequency: str = "d",
     ) -> List[Dict[str, Any]]:
         """
-        获取K线数据（雪球 API）
+        获取 K 线数据（雪球 API）
 
         Args:
-            stock_code: 股票代码，格式如 601127.SH
+            stock_code: 股票代码，格式如 601127.SH / 300750.SZ / 300750
             start_date: 开始日期 (YYYY-MM-DD)
             end_date: 结束日期 (YYYY-MM-DD)
             frequency: K线周期，可选值: "d"(日), "w"(周), "m"(月), "5"(5分钟), "15"(15分钟), "30"(30分钟), "60"(60分钟)
@@ -47,10 +47,37 @@ class FinancialDataInterface(ABC):
             high、low、volume、amount、percent、chg、turnoverrate 等字段
 
         Raises:
-            LoginError: If login to the data source fails.
-            NoDataFoundError: If no data is found for the query.
-            DataSourceError: For other data source related errors.
-            ValueError: If input parameters are invalid.
+            DataSourceError: 当数据源出现错误时
+            NoDataFoundError: 当找不到指定数据时
+            ValueError: 当输入参数无效时
+        """
+        pass
+
+    @abstractmethod
+    def get_eastmoney_klines(
+        self,
+        stock_code: str,
+        start_date: str,
+        end_date: str,
+        frequency: str = "d",
+    ) -> List[str]:
+        """
+        获取 K 线数据（东方财富 API）
+
+        Args:
+            stock_code: 股票代码，格式如 601127.SH / 300750.SZ / 300750
+            start_date: 开始日期 (YYYY-MM-DD)
+            end_date: 结束日期 (YYYY-MM-DD)
+            frequency: K线周期，可选值: "d"(日), "w"(周), "m"(月), "5"(5分钟), "15"(15分钟), "30"(30分钟), "60"(60分钟)
+
+        Returns:
+            东方财富原始 K 线字符串列表，格式通常为
+            日期,开盘,收盘,最高,最低,成交量,成交额,振幅,涨跌幅,涨跌额,换手率
+
+        Raises:
+            DataSourceError: 当数据源出现错误时
+            NoDataFoundError: 当找不到指定数据时
+            ValueError: 当输入参数无效时
         """
         pass
 
@@ -115,15 +142,32 @@ class FinancialDataInterface(ABC):
         pass
 
     @abstractmethod
-    def get_real_time_data(self, symbol: str) -> Dict[str, Any]:
+    def get_xueqiu_real_time_data(self, symbol: str) -> Dict[str, Any]:
         """
-        获取股票实时数据（雪球 quote.json）
+        获取股票实时行情（雪球 quote.json）
 
         Args:
-            symbol: 股票代码，格式如 601127.SH
+            symbol: 股票代码，格式如 601127.SH / 300750.SZ / 300750
 
         Returns:
             雪球 API 的 data 字段，含 market、quote、others、tags，原样返回不做重组
+
+        Raises:
+            DataSourceError: 当数据源出现错误时
+            NoDataFoundError: 当找不到指定股票数据时
+        """
+        pass
+
+    @abstractmethod
+    def get_eastmoney_real_time_data(self, symbol: str) -> Dict[str, Any]:
+        """
+        获取股票实时/最新行情（东方财富 K 线接口）
+
+        Args:
+            symbol: 股票代码，格式如 601127.SH / 300750.SZ / 300750
+
+        Returns:
+            东方财富 API 的 data 字段，通常含 code、name、klines、preKPrice 等
 
         Raises:
             DataSourceError: 当数据源出现错误时

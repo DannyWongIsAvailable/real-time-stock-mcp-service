@@ -192,13 +192,60 @@ def format_real_time_data(data: Dict[str, Any]) -> str:
     return format_markdown_report(title, sections=sections)
 
 
+def format_eastmoney_real_time_data(data: Dict[str, Any]) -> str:
+    """将东方财富实时行情 data 格式化为 Markdown 列表。"""
+    klines = data.get("klines", [])
+    if not klines:
+        return "未找到有效数据"
+
+    latest_kline = klines[-1].split(",")
+    if len(latest_kline) < 11:
+        return "数据格式错误"
+
+    date = latest_kline[0]
+    open_price = float(latest_kline[1])
+    close_price = float(latest_kline[2])
+    high_price = float(latest_kline[3])
+    low_price = float(latest_kline[4])
+    volume = int(latest_kline[5])
+    amount = float(latest_kline[6])
+    amplitude_pct = float(latest_kline[7])
+    change_pct = float(latest_kline[8])
+    change_amount = float(latest_kline[9])
+    turnover_rate = float(latest_kline[10])
+
+    pre_close = float(data.get("preKPrice", close_price - change_amount))
+
+    formatted_data = {
+        "股票名称": data.get("name", "N/A"),
+        "股票代码": data.get("code", "N/A"),
+        "当前价格": f"{close_price:.2f}元",
+        "涨跌额": f"{change_amount:.2f}元",
+        "涨跌幅": f"{change_pct:.2f}%",
+        "开盘价": f"{open_price:.2f}元",
+        "最高价": f"{high_price:.2f}元",
+        "最低价": f"{low_price:.2f}元",
+        "昨收价": f"{pre_close:.2f}元",
+        "成交量": f"{format_large_number(volume)}",
+        "成交额": f"{format_large_number(amount)}元",
+        "振幅": f"{amplitude_pct:.2f}%",
+        "换手率": f"{turnover_rate:.2f}%",
+        "更新时间": date,
+    }
+
+    result = "实时股票数据\n\n"
+    for key, value in formatted_data.items():
+        result += f"- {key}: {value}\n"
+    return result
+
+
 def register_real_time_data_tools(app: FastMCP, data_source: FinancialDataInterface):
     """注册实时股票数据工具"""
 
     @app.tool()
-    def get_real_time_data(symbol: str) -> str:
+    def get_xueqiu_real_time_data(symbol: str) -> str:
         """
-        获取指定股票的实时股票数据，包括价格、涨跌幅、成交量等信息。
+        获取指定股票的实时行情（雪球 API），包括价格、涨跌幅、成交量等信息。
 
         Args:
             symbol: 股票代码，数字后带上交易所代码，格式如688041.SH
@@ -207,20 +254,47 @@ def register_real_time_data_tools(app: FastMCP, data_source: FinancialDataInterf
             格式化的实时股票数据，以Markdown表格形式展示
 
         Examples:
-            - get_real_time_data("688041.SH")
+            - get_xueqiu_real_time_data("688041.SH")
         """
         try:
-            logger.info(f"获取实时股票数据: {symbol}")
+            logger.info(f"获取雪球实时股票数据: {symbol}")
 
-            data = data_source.get_real_time_data(symbol)
+            data = data_source.get_xueqiu_real_time_data(symbol)
             if not data or not data.get("quote"):
                 return f"未找到股票 '{symbol}' 的实时行情数据"
 
             return format_real_time_data(data)
 
         except Exception as e:
-            logger.error(f"工具执行出错: {e}")
-            return f"执行失败: {str(e)}"
+            logger.error(f"获取雪球实时数据时出错: {e}")
+            return f"获取雪球实时数据失败: {str(e)}"
+
+    @app.tool()
+    def get_eastmoney_real_time_data(symbol: str) -> str:
+        """
+        获取指定股票的实时/最新行情（东方财富 API），包括价格、涨跌幅、成交量等信息。
+
+        Args:
+            symbol: 股票代码，数字后带上交易所代码，格式如688041.SH
+
+        Returns:
+            格式化的实时股票数据，以Markdown列表形式展示
+
+        Examples:
+            - get_eastmoney_real_time_data("688041.SH")
+        """
+        try:
+            logger.info(f"获取东方财富实时股票数据: {symbol}")
+
+            data = data_source.get_eastmoney_real_time_data(symbol)
+            if not data:
+                return f"未找到股票 '{symbol}' 的实时行情数据"
+
+            return format_eastmoney_real_time_data(data)
+
+        except Exception as e:
+            logger.error(f"获取东方财富实时数据时出错: {e}")
+            return f"获取东方财富实时数据失败: {str(e)}"
 
     @app.tool()
     def get_real_time_market_indices() -> str:
