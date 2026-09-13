@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List
 
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 from stock_mcp.data_source_interface import FinancialDataInterface
 from stock_mcp.utils.markdown_formatter import (
     format_list_to_markdown_table,
@@ -193,50 +193,36 @@ def format_real_time_data(data: Dict[str, Any]) -> str:
 
 
 def format_eastmoney_real_time_data(data: Dict[str, Any]) -> str:
-    """将东方财富实时行情 data 格式化为 Markdown 列表。"""
-    klines = data.get("klines", [])
-    if not klines:
-        return "未找到有效数据"
+    """格式化东方财富 push2 实时行情接口返回。"""
+    def div100(v):
+        return float(v) / 100 if v is not None else 0
 
-    latest_kline = klines[-1].split(",")
-    if len(latest_kline) < 11:
-        return "数据格式错误"
+    def div10000(v):
+        return float(v) / 10000 if v is not None else 0
 
-    date = latest_kline[0]
-    open_price = float(latest_kline[1])
-    close_price = float(latest_kline[2])
-    high_price = float(latest_kline[3])
-    low_price = float(latest_kline[4])
-    volume = int(latest_kline[5])
-    amount = float(latest_kline[6])
-    amplitude_pct = float(latest_kline[7])
-    change_pct = float(latest_kline[8])
-    change_amount = float(latest_kline[9])
-    turnover_rate = float(latest_kline[10])
+    def yuan(v):
+        return f"{div100(v):.2f}元"
 
-    pre_close = float(data.get("preKPrice", close_price - change_amount))
-
-    formatted_data = {
-        "股票名称": data.get("name", "N/A"),
-        "股票代码": data.get("code", "N/A"),
-        "当前价格": f"{close_price:.2f}元",
-        "涨跌额": f"{change_amount:.2f}元",
-        "涨跌幅": f"{change_pct:.2f}%",
-        "开盘价": f"{open_price:.2f}元",
-        "最高价": f"{high_price:.2f}元",
-        "最低价": f"{low_price:.2f}元",
-        "昨收价": f"{pre_close:.2f}元",
-        "成交量": f"{format_large_number(volume)}",
-        "成交额": f"{format_large_number(amount)}元",
-        "振幅": f"{amplitude_pct:.2f}%",
-        "换手率": f"{turnover_rate:.2f}%",
-        "更新时间": date,
-    }
-
-    result = "实时股票数据\n\n"
-    for key, value in formatted_data.items():
-        result += f"- {key}: {value}\n"
-    return result
+    rows = [
+        {"字段": "股票代码", "值": data.get("f57", "-")},
+        {"字段": "股票名称", "值": data.get("f58", "-")},
+        {"字段": "最新价", "值": yuan(data.get("f43"))},
+        {"字段": "涨跌额", "值": yuan(data.get("f169"))},
+        {"字段": "涨跌幅", "值": f"{div100(data.get('f170')):.2f}%"},
+        {"字段": "开盘价", "值": yuan(data.get("f46"))},
+        {"字段": "最高价", "值": yuan(data.get("f44"))},
+        {"字段": "最低价", "值": yuan(data.get("f45"))},
+        {"字段": "昨收价", "值": yuan(data.get("f60"))},
+        {"字段": "成交量", "值": format_large_number(data.get("f47", 0)) + "手"},
+        {"字段": "成交额", "值": format_large_number(data.get("f48", 0)) + "元"},
+        {"字段": "量比", "值": f"{div100(data.get('f50')):.2f}"},
+        {"字段": "换手率", "值": f"{div10000(data.get('f51')):.4f}%"},
+        {"字段": "市盈率", "值": f"{float(data.get('f52',0))/1000:.3f}倍"},
+        {"字段": "市净率", "值": f"{float(data.get('f161',0))/10000:.3f}倍"},
+        {"字段": "总市值", "值": format_large_number(data.get("f116", 0)) + "元"},
+        {"字段": "流通市值", "值": format_large_number(data.get("f117", 0)) + "元"},
+    ]
+    return format_markdown_report("东方财富实时行情", table_data=rows)
 
 
 def register_real_time_data_tools(app: FastMCP, data_source: FinancialDataInterface):

@@ -25,6 +25,7 @@ venv/
 ENV/
 env/
 .venv
+node_modules/
 
 # IDEs
 .vscode/
@@ -52,3 +53,4 @@ htmlcov/
 # MCP
 .mcp/
 /.lingma/
+

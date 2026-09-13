@@ -6,7 +6,7 @@ src/mcp_tools/kline_data.py
 import logging
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 from stock_mcp.data_source_interface import FinancialDataInterface
 from stock_mcp.utils.markdown_formatter import (
     format_list_to_markdown_table,

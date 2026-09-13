@@ -167,7 +167,10 @@ class FinancialDataInterface(ABC):
             symbol: 股票代码，格式如 601127.SH / 300750.SZ / 300750
 
         Returns:
-            东方财富 API 的 data 字段，通常含 code、name、klines、preKPrice 等
+            东方财富 push2 实时行情 API 的 data 字段，包含 f57/f58/f43 等字段：
+            f57代码、f58名称、f43最新价、f169涨跌额、f170涨跌幅、
+            f46开盘、f44最高、f45最低、f60昨收、f47成交量、
+            f48成交额、f116总市值、f117流通市值、f52市盈率、f161市净率等
 
         Raises:
             DataSourceError: 当数据源出现错误时

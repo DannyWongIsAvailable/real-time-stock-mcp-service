@@ -15,8 +15,8 @@ class RealTimeDataSpider(MultiSourceBaseSpider):
     """
 
     MARKET_INDEX_URL = "https://push2.eastmoney.com/api/qt/ulist.np/get"
+    EASTMONEY_QUOTE_URL = "https://push2.eastmoney.com/api/qt/stock/get"
     XUEQIU_QUOTE_URL = "https://stock.xueqiu.com/v5/stock/quote.json"
-    EASTMONEY_KLINE_URL = "https://push2his.eastmoney.com/api/qt/stock/kline/get"
 
     def __init__(
             self,
@@ -72,35 +72,35 @@ class RealTimeDataSpider(MultiSourceBaseSpider):
         return data
 
     def get_eastmoney_real_time_data(self, symbol: str) -> Dict[str, Any]:
-        """获取东方财富实时/最新日 K 数据。"""
+        """获取东方财富实时行情。
+
+        使用 push2.eastmoney.com/api/qt/stock/get 接口。
+        返回字段保持东方财富 f 字段格式，便于后续扩展。
+        """
+        fields = (
+            "f57,f58,f43,f169,f170,f46,f44,f45,f60,"
+            "f47,f48,f116,f117,f50,f51,f52,f161"
+        )
         params = {
             "secid": self.format_secid(symbol),
+            "fields": fields,
             "ut": "fa5fd1943c7b386f172d6893dbfba10b",
-            "fields1": "f1,f2,f3,f4,f5,f6",
-            "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61",
-            "klt": "101",
-            "fqt": "1",
-            "beg": "19000101",
-            "end": "20500101",
-            "rtntype": "6",
-            "lmt": "1",
             "_": str(self._timestamp_ms()),
         }
 
-        resp = self._eastmoney_get(
-            self.EASTMONEY_KLINE_URL,
+        payload = self._eastmoney_get_json(
+            self.EASTMONEY_QUOTE_URL,
             params=params,
             headers={"Referer": "https://quote.eastmoney.com/"},
         )
-        resp.raise_for_status()
-        payload = resp.json()
 
-        data = payload.get("data") if isinstance(payload, dict) else None
+        if payload.get("rc") != 0:
+            raise RuntimeError(f"东方财富实时行情请求失败: {payload}")
+
+        data = payload.get("data")
         if not data:
-            raise RuntimeError(f"获取东方财富实时行情失败: {payload}")
+            raise RuntimeError(f"东方财富实时行情无 data 字段: {payload}")
 
-        if not data.get("klines"):
-            raise RuntimeError(f"东方财富响应无有效 klines 字段: {payload}")
         return data
 
     def get_real_time_market_indices(self) -> List[Dict]:

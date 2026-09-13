@@ -6,7 +6,7 @@ import logging
 import os
 from datetime import datetime
 
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 
 from stock_mcp.data_source_interface import FinancialDataInterface
 from stock_mcp.stock_data_source import WebCrawlerDataSource
